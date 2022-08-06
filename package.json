@@ -1,12 +1,10 @@
 {
-  "name": "hx-geometry",
+  "name": "@harxer/geometry",
   "version": "1.0.0",
   "description": "Harxer geometry calculation helper methods.",
   "main": "geometry.js",
   "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "repository": "git@github.com:Harxer/geometry.git",
   "author": "Harrison Balogh",
   "license": "ISC"
 }
