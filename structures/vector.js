@@ -88,6 +88,12 @@ export default class Vector {
   plus(vec) {
     return new Vector(vec.x() + this.x(), vec.y() + this.y())
   }
+  // Modifies target vector
+  add(vec) {
+    this.x(this.x() + vec.x())
+    this.y(this.y() + vec.y())
+    return this
+  }
   /// Does not modify target vector
   flipped() {
     let newVec = new Vector()
@@ -133,15 +139,24 @@ export default class Vector {
     this.magnitude(1)
     return this
   }
+  /**
+   * Similar to a boune off a wall
+   * @param {Vector} normal of the wall towards the entry vector
+   */
+  reflect(normal, elasticity = 1, friction = 1) {
+    let proj = this.projection(normal)
+    let perp = this.minus(proj)
+    // apply elasticity and friction
+    perp = perp.multipliedBy(friction)
+    proj = proj.multipliedBy(elasticity)
+    return perp.minus(proj)
+  }
   // this.equals = function (point) {
   //   return (this.x == point.x && this.y == point.y);
   // };
   // this.segmentFromOrigin = function (origin) {
   //   return new Segment(origin, new Point(origin.x + this.x, origin.y + this.y));
   // };
-  // this.add = function(origin) {
-  //   return new Point(origin.x + this.x, origin.y + this.y);
-  // }
   extendBy(magnitude) {
     this.magnitude(this.magnitude() + magnitude)
     return this
@@ -160,8 +175,12 @@ export default class Vector {
   }
 
   projection(peer) {
-    let calc = this.dotProduct(peer) / (peer.x() * peer.x() + peer.y() * peer.y());
-    return new Vector(peer.x() * calc, peer.y() * calc);
+    let normal = new Vector(peer.x(), peer.y()).normalized()
+    let dot = this.dotProduct(normal)
+    normal.magnitude(dot)
+    return normal
+    // let calc = this.dotProduct(peer) / (peer.x() * peer.x() + peer.y() * peer.y());
+    // return new Vector(peer.x() * calc, peer.y() * calc);
   }
 
   intersectsCircle(center, radiusSqrd) {
