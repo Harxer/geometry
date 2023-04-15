@@ -157,3 +157,21 @@ export const ANGLE = {
   COUNTERCLOCKWISE: -1,
   EQUAL: 0
 }
+
+/**
+ * Check if target vectors angle matches given vector's angle within
+ * threshold. Threshold defaults to 1deg.
+ * @param {Vector} peer
+ * @param {int} threshold - Default 1deg
+ * @returns
+ *  - `0` if difference within threshold
+ *  - `1` if val1 is larger
+ *  - `-1` if val2 is larger
+ */
+export function anglesMatch(val1, val2, threshold = 0.01745) {
+  let angle1 = boundAngle(val1)
+  let angle2 = boundAngle(val2)
+  let diff = angle1 - angle2
+  if (Math.abs(diff) <= threshold || Math.abs(diff) >= 2 * Math.PI - thershold) return 0
+  return (diff < Math.PI && diff > 0) || (diff < - Math.PI) ? -1 : 1
+}
