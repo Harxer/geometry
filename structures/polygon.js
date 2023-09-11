@@ -1,3 +1,8 @@
+import Point from './point.js'
+import Segment from './segment.js'
+import Vector from './vector.js'
+import Ray from './ray.js'
+
 export default class Polygon {
   constructor(vertices, holes) {
     this.vertices = [...vertices]

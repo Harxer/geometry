@@ -1,3 +1,5 @@
+import Point from './point.js'
+
 /// Unlike a segment, a line does not end at its a and b points - it passes through them.
 /// This is primarily used for line intersection checks (versus bounded segment checks).
 /// Create a line from a segment using the line() function on a segment object.

@@ -1,3 +1,5 @@
+import Point from './point.js'
+
 /**
  * A segment that extends infinitely in one direction - or a vector with infinite magnitude.
  *

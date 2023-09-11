@@ -1,3 +1,6 @@
+import Point from './point.js'
+import Segment from './segment.js'
+
 /// A vector is a point with a direction. This vector is a segment where vertex1
 /// is (0,0) and vertex2 is (x,y). Components/magnitude/angle properties are cached.
 export default class Vector {
