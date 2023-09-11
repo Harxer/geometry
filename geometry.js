@@ -4,12 +4,12 @@
  * @usage import { Segment, Line, Ray, Vector, Polygon, Point } from './Layout2D/Geometry.js'
  */
 
-import Line from './structures/line'
-import Polygon from './structures/polygon'
-import Point from './structures/point'
-import Ray from './structures/ray'
-import Segment from './structures/segment'
-import Vector from './structures/vector'
+import Line from './structures/line.js'
+import Polygon from './structures/polygon.js'
+import Point from './structures/point.js'
+import Ray from './structures/ray.js'
+import Segment from './structures/segment.js'
+import Vector from './structures/vector.js'
 
 export {
   Line,
@@ -172,6 +172,6 @@ export function anglesMatch(val1, val2, threshold = 0.01745) {
   let angle1 = boundAngle(val1)
   let angle2 = boundAngle(val2)
   let diff = angle1 - angle2
-  if (Math.abs(diff) <= threshold || Math.abs(diff) >= 2 * Math.PI - thershold) return 0
+  if (Math.abs(diff) <= threshold || Math.abs(diff) >= 2 * Math.PI - threshold) return 0
   return (diff < Math.PI && diff > 0) || (diff < - Math.PI) ? -1 : 1
 }
