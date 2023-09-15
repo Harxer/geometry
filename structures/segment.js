@@ -2,6 +2,7 @@ import Point from './point.js'
 import Line from './line.js'
 import Ray from './ray.js'
 import Vector from './vector.js'
+import { orientation, ORIENTATION } from '../geometry.js'
 
 /// A segment is composed of 2 vertices.
 export default class Segment {

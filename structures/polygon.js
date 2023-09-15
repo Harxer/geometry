@@ -2,6 +2,7 @@ import Point from './point.js'
 import Segment from './segment.js'
 import Vector from './vector.js'
 import Ray from './ray.js'
+import { orientation, ORIENTATION } from '../geometry.js'
 
 export default class Polygon {
   constructor(vertices, holes) {
@@ -285,7 +286,7 @@ export default class Polygon {
    * @param {Number} extrude_amount Amount to buffer out the exit point
    * @returns
    */
-  closestPointOutsideFrom(point, extrude_amount) {
+  closestPointOutsideFrom(point, extrudeAmount = 2) {
     if (!this.containsPoint(point)) return point
     // Find closest point outside of polygon
     let closest = { distSqrd: undefined, point: undefined }
@@ -297,8 +298,8 @@ export default class Polygon {
         closest.point = closestPoint
       }
     });
-    // Extend out result by 1 unit to avoid rounding errors
-    return new Segment(point, closest.point).vector().extendBy(2).asPoint().add(point) // closest.point
+    // Extend out result by 2 unit to avoid rounding errors
+    return new Segment(point, closest.point).vector().extendBy(extrudeAmount).asPoint().add(point) // closest.point
   }
 
   /**
@@ -318,6 +319,35 @@ export default class Polygon {
     let toNext = new Vector(vNext.x - vertex.x, vNext.y - vertex.y)
     let a = (toPrev.angle() - toNext.angle() + Math.PI * 2) % (Math.PI * 2)
     return this.counterclockwise ? 2 * Math.PI - a : a
+  }
+
+  /**
+   * Extrude polygon vertices. An approximation of padding or "stroking" a polygon.
+   * @returns {Polyon} with extruded vertices from target
+   */
+  extrudeVertices(vertices, extrudeAmount) {
+    let extrudedVertices = [];
+    for (let v = 0; v < vertices.length; v++) {
+      let cV = vertices[v];
+      let nV = vertices[(v+1)%vertices.length];
+      let pV = vertices[(v-1) < 0 ? (vertices.length+(v-1)) : (v-1)];
+      // Vectors from current vertex out to previous and next vertex.
+      let pVec = (new Vector(pV.x - cV.x, cV.y - pV.y)).normalized();
+      let nVec = (new Vector(nV.x - cV.x, cV.y - nV.y)).normalized();
+      let angle = Math.acos(pVec.dotProduct(nVec))
+      let cross = pVec.crossProduct(nVec)
+      if (cross > 0) angle = 2*Math.PI - angle
+      let angleBetween = angle/2 + nVec.angle();
+
+      // Extend a point out from current vertex.
+      extrudedVertices.push(
+        new Point(
+          cV.x + extrudeAmount * Math.cos(angleBetween),
+          cV.y - extrudeAmount * Math.sin(angleBetween)
+        )
+      );
+    }
+    return new Polygon(extrudedVertices);
   }
 
   /** Check if the polygon is convex. */
