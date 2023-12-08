@@ -1,86 +1,163 @@
 import Point from './point.js'
 import Segment from './segment.js'
 import Vector from './vector.js'
-import Ray from './ray.js'
-import { orientation, ORIENTATION } from '../geometry.js'
+import { orientation, ORIENTATION, equals, validNumber, minNumber, boundAngle } from '../geometry.js'
 
 export default class Polygon {
+  /**
+   * @param {[Point]} vertices Boundary vertices
+   * @param {[Polygon]} holes Internal polygon holes
+   */
   constructor(vertices, holes) {
-    this.vertices = [...vertices]
+    if (!Array.isArray(vertices)) throw `[POLYGON INIT ERROR] vertices not array: ${vertices}`
+    if (vertices.length <= 2) throw `[POLYGON INIT ERROR] 3 vertices required to make a polygon: ${vertices.length}`
 
-    // Calculate center
-    let center = {x: 0, y: 0}
-    vertices.forEach(vertex => center = {x: center.x + vertex.x, y: center.y + vertex.y})
-    this.circumcenter = new Point(center.x / vertices.length, center.y / vertices.length);
-
-    // Calculate circumcircle (smallest bound circle)
-    let vertexDistanceSqrd = Math.pow(this.circumcenter.x - vertices[0].x, 2) + Math.pow(this.circumcenter.y - vertices[0].y, 2)
-    for (let x = 1; x < vertices.length; x++) {
-      let distSqrd = Math.pow(this.circumcenter.x - vertices[x].x, 2) + Math.pow(this.circumcenter.y - vertices[x].y, 2)
-      if (distSqrd > vertexDistanceSqrd) vertexDistanceSqrd = distSqrd
+    this._vertices = [];
+    for (let vertex of vertices) {
+      if (typeof vertex === 'object') {
+        if (!validNumber(vertex.x)) throw `[POLYGON INIT ERROR]: X component not an integer: ${vertex.x}`;
+        if (!validNumber(vertex.y)) throw `[POLYGON INIT ERROR]: Y component not an integer: ${vertex.y}`;
+        vertex = new Point(vertex.x, vertex.y);
+      }
+      this._vertices.push(vertex);
     }
-    this.circumradius = Math.sqrt(vertexDistanceSqrd)
 
-    // Counterclockwise check
-    let averageSlope = 0
-    for (let i = 0; i < vertices.length; i++) {
-      let v = vertices[i]
-      let vNext = vertices[(i + 1) % vertices.length]
-      averageSlope += (vNext.x - v.x) * (vNext.y + v.y)
+    let excessVertices = [];
+    // Verify if any vertices overlap/intersect
+    for (let aEdgeI = 0; aEdgeI < this.edges.length - 1; aEdgeI++) {
+      for (let bEdgeI = aEdgeI + 1; bEdgeI < this.edges.length; bEdgeI++) {
+
+        if (bEdgeI === aEdgeI + 1) {
+          // Immediate neighbors only get checked for the non-shared endpoint is collinear as `intersects()` would always result in true
+          if (orientation(this.edges[aEdgeI].a, this.edges[aEdgeI].b, this.edges[bEdgeI].b) === ORIENTATION.COLLINEAR) {
+            if (this.edges[aEdgeI].vector.quadrant() === this.edges[bEdgeI].vector.quadrant()) {
+              // Repair collinear continued segments, remove excess vertices
+              excessVertices.push(aEdgeI + 1);
+            } else {
+              // Verify no overlap, no backtracking
+              throw `[POLYGON INIT ERROR] edge neighbors collinear: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`;
+            }
+          }
+          // TODO auto repair endpoint overlap
+        } else if (aEdgeI === 0 && bEdgeI === this.edges.length - 1) {
+          // First edge has to ignore endpoint overlap with closing edge
+          if (orientation(this.edges[bEdgeI].a, this.edges[bEdgeI].b, this.edges[aEdgeI].b) == ORIENTATION.COLLINEAR) {
+            throw `[POLYGON INIT ERROR] closing edge collinear: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`;
+          }
+        } else if (this.edges[aEdgeI].intersects(this.edges[bEdgeI])) {
+          throw `[POLYGON INIT ERROR] edges intersect: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`;
+        }
+      }
     }
-    this.counterclockwise = (averageSlope > 0)
+    if (excessVertices.length) {
+      // TODO move this first populating this._vertices
+      this._vertices = this._vertices.filter((_, i) => !excessVertices.includes(i));
+      // regenerate edges after vertex manipulation
+      this._edges = undefined;
+      this.edges;
+    }
+
+    // Verify vertices are not collinear
+    this.clockwise;
+
+    // TODO - Test holes for overlap with boundary
+    //
+
+    // TODO - a polygon should not have parallel edges so close there is
+    // no amount of gap between them. This is confusing for triangulation
+    // and when finding nearest point outside of a polygon. It also conceptually
+    // defeats the purpose of the polygon blocking out spaces. This case should
+    // conjoin the two blockers into one or break apart a blocker into two.
 
     // Reference to hole polygons relative to this polygon
     this.holes = (holes === undefined) ? [] : holes
   }
 
-  edges() {
-    if (this._edges !== undefined) return this._edges
-    let edges = []
-    this.vertices.forEach((vertex, v) => {
-      edges.push(new Segment(vertex, this.vertices[(v + 1) % this.vertices.length]))
-    })
-    edges.forEach(edge => edge.parent = this)
-    this._edges = edges
-    return this._edges
+  get vertices() {
+    return this._vertices;
+  }
+  set vertices(_) { throw 'Cannot modify vertices of a Polygon structure.' }
+
+  /** Get vertices as connected segments @returns {[Segment]} */
+  get edges() {
+    if (this._edges === undefined) {
+      let edges = []
+      this.vertices.forEach((vertex, v) => {
+        edges.push(new Segment(vertex, this.vertices[(v + 1) % this.vertices.length]))
+      })
+      edges.forEach(edge => edge.parent = this)
+      this._edges = edges
+    }
+    return this._edges;
+  }
+  set edges(_) { throw 'Cannot modify edges of Polygon structure.' }
+
+  /** Get average center of all vertices */
+  get circumcenter() {
+    if (this._circumcenter === undefined) {
+      let sumVertices = this.vertices.reduce(({x, y}, vertex) => {return {x: x + vertex.x, y: y + vertex.y}}, {x: 0, y: 0});
+      this._circumcenter = new Point(sumVertices.x / this.vertices.length, sumVertices.y / this.vertices.length);
+    }
+    return this._circumcenter;
+  }
+  set circumcenter(_) { throw 'Cannot modify circumcenter of Polygon structure.' }
+
+  /** Get circumradius (smallest bounding circle) */
+  get circumradius() {
+    if (this._circumradius === undefined) {
+      let furthestVertexSqrd = this.vertices.reduce((furthest, vertex) => Math.max(furthest, Segment.distanceSqrd(this.circumcenter, vertex)), 0);
+      this._circumradius = Math.sqrt(furthestVertexSqrd);
+    }
+    return this._circumradius;
+  }
+  set circumradius(_) { throw 'Cannot modify circumradius of Polygon structure.' }
+
+  /** Get clockwise rule */
+  get clockwise() {
+    if (this._clockwise === undefined) {
+      let averageSlope = this.edges.reduce((sum, edge) => sum + (edge.b.x - edge.a.x) * (edge.b.y + edge.a.y), 0);
+      // for (let i = 0; i < this._vertices.length; i++) {
+      //   let v = this._vertices[i]
+      //   let vNext = this._vertices[(i + 1) % this._vertices.length]
+      //   averageSlope += (vNext.x - v.x) * (vNext.y + v.y)
+      // }
+      if (equals(averageSlope, 0)) throw `[POLYGON INIT ERROR] vertices are colllinear`
+      this._clockwise = (averageSlope > 0)
+    }
+    return this._clockwise;
+  }
+  set clockwise(_) { throw 'Cannot modify clockwise state of Polygon structure.'}
+  get counterclockwise() { return !this.clockwise; }
+  set counterclockwise(_) { throw 'Cannot modify counterclockwise state of Polygon structure.'}
+
+  /** TODO: Optimize @returns {Polygon} */
+  get copy() {
+    return new Polygon(this.vertices);
   }
 
+  // --------------------------
+
+  // TODO - simplify alg: https://stackoverflow.com/questions/36399381/whats-the-fastest-way-of-checking-if-a-point-is-inside-a-polygon-in-python
+  /** Check if given point is inside polygon - external to polygon if structure is clockwise.
+   * @param {int} p point to check
+   * @returns {bool} true if point is internal or lies on structure's edge/vertex (for clockwise).
+   */
   containsPoint(p) {
-    if (this.vertices.length < 3) return false;
-
-    let pInfinity = new Segment(p, new Point(p.x + 999999, p.y));
+    let pInfiniteX = new Segment(p, {x: Infinity, y: p.y});
     let count = 0;
-    // let firstEdgeOrientation = undefined
-
-    for (let i = 0; i < this.vertices.length; i++) {
-      let vPrev = this.vertices[(i - 1) < 0 ? this.vertices.length - 1 : i - 1]
-      let v = this.vertices[i]
-      let vNext = this.vertices[(i + 1) % this.vertices.length]
-
-      let edge = new Segment(v, vNext)
-      if (p.equals(edge.a()) || p.equals(edge.b())) return false
-
-      if (orientation(edge.a(), p, edge.b()) == ORIENTATION.COLLINEAR) {
-        if (p.isOnSegment(edge)) return false
-      }
-
-      if (edge.intersects(pInfinity)) {
-
-        if (orientation(p, edge.a(), pInfinity.b()) == ORIENTATION.COLLINEAR) {
-          if (edge.a().isOnSegment(pInfinity)) {
-            if (orientation(v, p, vNext) !== orientation(vPrev, p, v)) continue
-          }
+    for (let i = 0; i < this.edges.length; i++) {
+      let edge = this.edges[i];
+      // if (p.equals(edge.a) || p.equals(edge.b)) return false // TODO review change
+      if (p.isOnSegment(edge)) return this.counterclockwise;
+      if (edge.intersects(pInfiniteX)) {
+        // Ensure not y-aligned with endpoint, only allow B, skip A
+        if (!equals(p.y, Math.min(edge.a.y, edge.b.y)) || (equals(p.y, Math.max(edge.a.y, edge.b.y)) && !equals(edge.a.y, edge.b.y))) {
+          count += 1
         }
-        if (orientation(p, edge.b(), pInfinity.b()) == ORIENTATION.COLLINEAR) {
-          if (edge.b().isOnSegment(pInfinity)) continue
-        }
-
-        count += 1;
-      }
+      };
     }
-
-    if (count % 2 == 0 && this.counterclockwise) return true
-    if (count % 2 == 1 && !this.counterclockwise) return true
+    if (count % 2 == 0 && this.clockwise) return true
+    if (count % 2 == 1 && this.counterclockwise) return true
     return false
   }
 
@@ -91,55 +168,17 @@ export default class Polygon {
     return true
   }
 
-  /**
-   * Test if polygon is pierced by the given segment or ray. Will return a hash with various
-   * data about the pierce location.
+  /** Check if peer overlaps this structure. Edge shared structures are considered overlapping as
+   * well as vertex overlapping structures.
+   * @todo Structures within `minNumber()` should be considered overlapping.
+   * @param {Polygon} peer
+   * @returns {boolean}
    */
-  pierce(segment) {
-    if (segment instanceof Ray) {
-      segment = new Segment(segment.origin, new Point(999999 * Math.cos(segment.angle) + segment.origin.x, 999999 * Math.sin(segment.angle) + segment.origin.y))
-    }
-    let nearestIntersectingSide = {
-      side: undefined,
-      distanceSqrd: undefined,
-      point: undefined
-    };
-
-    this.edges().forEach(edge => {
-      let intersection = segment.intersectionPoint(edge);
-      if (intersection) {
-        let distSqrd = Math.pow(intersection.y - segment.a.y, 2) + Math.pow(intersection.x - segment.a.x, 2);
-        // segmentsIntersect returning undefined indicates they don't intersect.
-        if (!nearestIntersectingSide.side || distSqrd < nearestIntersectingSide.distanceSqrd) {
-          nearestIntersectingSide.side = edge;
-          nearestIntersectingSide.distanceSqrd = distSqrd;
-          nearestIntersectingSide.point = intersection;
-        }
-      }
-    });
-
-    // Can return undefined or a segment object
-    return nearestIntersectingSide;
-  };
-
   overlaps(peer) {
-    let distToPeer = Math.sqrt(Math.pow(peer.circumcenter.y - this.circumcenter.y, 2) + Math.pow(peer.circumcenter.x - this.circumcenter.x, 2))
-    if (distToPeer >= this.circumradius + peer.circumradius) return false
+    let distSqrdToPeer = Segment.distanceSqrd(this.circumcenter, peer.circumcenter);
+    if (distSqrdToPeer >= Math.pow(this.circumradius + peer.circumradius, 2)) return false;
 
-    // Check edge overlaps
-    for (let tV = 0; tV < this.vertices.length; tV++) {
-      let thisSide = new Segment(this.vertices[tV], this.vertices[(tV+1)%this.vertices.length]);
-      for (let pV = 0; pV < peer.vertices.length; pV++) {
-        let peerSide = new Segment(peer.vertices[pV], peer.vertices[(pV+1)%peer.vertices.length]);
-
-        let intersectionPoint = thisSide.intersectionPoint(peerSide);
-        if (intersectionPoint === undefined) continue
-
-        return true
-      }
-    }
-
-    return false
+    return this.edges.some(edge => peer.edges.some(peerEdge => edge.intersects(peerEdge)));
   }
 
   /**
@@ -147,159 +186,136 @@ export default class Polygon {
    * the new polygon union will be returned or undefined if they don't overlap.
    */
   union(peer) {
-    let thisVertices = [...this.vertices]
-    let peerVertices = [...peer.vertices]
+    let self = this;
 
-    let outerNodes = []
-    // Find outer vertices
-    thisVertices.forEach(thisVertex => {
-      if (!peer.containsPoint(thisVertex)) {
-        for (let iOuterNode = 0; iOuterNode < outerNodes.length; iOuterNode++) {
-          if (outerNodes[iOuterNode].vertex.equals(thisVertex)) {
-            thisVertex.link = outerNodes[iOuterNode].vertex
-            outerNodes[iOuterNode].vertex.link = thisVertex
-            outerNodes.splice(iOuterNode, 1)
-            return
-          }
-        }
-        outerNodes.push({vertex: thisVertex, visited: false})
+    const builder = {
+      vertices: [],
+      get lastVertex() {
+        return this.vertices[this.vertices.length - 1];
       }
-    }) // Check if vertex is contained in peer
-    peerVertices.forEach(peerVertex => {
-      if (!this.containsPoint(peerVertex)) {
-        for (let iOuterNode = 0; iOuterNode < outerNodes.length; iOuterNode++) {
-          if (outerNodes[iOuterNode].vertex.equals(peerVertex)) {
-            peerVertex.link = outerNodes[iOuterNode].vertex
-            outerNodes[iOuterNode].vertex.link = peerVertex
-            outerNodes.splice(iOuterNode, 1)
-            return
-          }
-        }
-        outerNodes.push({vertex: peerVertex, visited: false})
-      }
-    }) // Check if vertex is contained in this
-
-    // Link intersection points
-    let intersectionPointFound = false
-    for (let tV = 0; tV < thisVertices.length; tV++) {
-      let thisSide = new Segment(thisVertices[tV], thisVertices[(tV+1)%thisVertices.length]);
-      for (let pV = 0; pV < peerVertices.length; pV++) {
-        let peerSide = new Segment(peerVertices[pV], peerVertices[(pV+1)%peerVertices.length]);
-
-        let intersectionPointThis = thisSide.intersectionPoint(peerSide);
-        if (intersectionPointThis === undefined) continue
-        let intersectionPointPeer = new Point(intersectionPointThis.x, intersectionPointThis.y)
-
-        if (intersectionPointThis.equals(thisSide.a())) {
-          intersectionPointThis = thisSide.a()
-        } else if (intersectionPointThis.equals(thisSide.b())) {
-          intersectionPointThis = thisSide.b()
-        } else {
-          thisVertices.splice(tV + 1, 0, intersectionPointThis)
-        }
-
-        if (intersectionPointPeer.equals(peerSide.a())) {
-          intersectionPointPeer = peerSide.a()
-        } else if (intersectionPointPeer.equals(peerSide.b())) {
-          intersectionPointPeer = peerSide.b()
-        } else {
-          peerVertices.splice(pV + 1, 0, intersectionPointPeer)
-        }
-
-        intersectionPointThis.link = intersectionPointPeer
-        intersectionPointPeer.link = intersectionPointThis
-
-        intersectionPointFound = true
-        tV -= 1
-        break
+    }
+    const tracer = {
+      structure: undefined,
+      iVertex: undefined,
+      get iVertexNext() { return (this.iVertex + 1) % this.structure.vertices.length; },
+      get vertex() { return this.structure.vertices[this.iVertex]; },
+      get vertexNext() { return this.structure.vertices[this.iVertexNext]; },
+      get structureOther() { return this.structure === self ? peer : self; },
+      /** Flip structure from `peer` to `this`, or vice versa, and update iVertex with given index. */
+      structureFlip(index) {
+        this.structure = this.structureOther;
+        this.iVertex = index;
       }
     }
 
-    if (!intersectionPointFound) return undefined
-
-    let newPolygons = []
-    // Walk through outer vertices to form polygons
-    for (let n = 0; n < outerNodes.length; n++) {
-      let outerNode = outerNodes[n]
-      if (outerNode.visited) continue
-
-      let index = peerVertices.indexOf(outerNode.vertex)
-      const START_VERTICES = (index == -1) ? thisVertices : peerVertices
-      const START_VERTEX = (index == -1) ? thisVertices.indexOf(outerNode.vertex) : index
-
-      let currentVertices = START_VERTICES
-      let currentVertex = START_VERTEX
-      let verticesBuilder = []
-      let vertex = currentVertices[currentVertex]
-      do {
-        if (vertex.link !== undefined) {
-          outerNodes.forEach(node => {if (node.vertex === vertex) node.visited = true})
-          currentVertices = (currentVertices == peerVertices) ? thisVertices : peerVertices
-          currentVertex = currentVertices.indexOf(vertex.link)
-          vertex.link = undefined
-          vertex = currentVertices[currentVertex]
-          vertex.link = undefined
-        }
-        outerNodes.forEach(node => {if (node.vertex === vertex) node.visited = true})
-        verticesBuilder.push(vertex)
-
-        currentVertex = (currentVertex + 1) % currentVertices.length
-        vertex = currentVertices[currentVertex]
-      } while (START_VERTICES[START_VERTEX] !== currentVertices[currentVertex])
-
-      newPolygons.push(new Polygon(verticesBuilder))
+    // Start tracer on first outer vertex by index
+    tracer.iVertex = this.vertices.findIndex(vertex => !peer.containsPoint(vertex));
+    if (tracer.iVertex === -1) {
+      // `this` structure is fully contained by `peer`, find outer peer vertex
+      tracer.iVertex = peer.vertices.findIndex(vertex => !this.containsPoint(vertex));
+      tracer.structure = peer;
+    } else {
+      tracer.structure = this;
     }
+    builder.vertices.push(tracer.vertex);
 
-    if (newPolygons.length == 0) return undefined
-    let convexHullIndex = 0
-
-    // Multiple polygons indicate a polygon with holes
-    for (let t = 0; t < newPolygons.length; t++) {
-      let thisPolygon = newPolygons[t]
-
-      // Remove collinear vertices
-      for (let i = 0; i < thisPolygon.vertices.length; i++) {
-        let vPrev = thisPolygon.vertices[((i - 1) < 0) ? (thisPolygon.vertices.length - 1) : (i - 1)]
-        let v = thisPolygon.vertices[i]
-        let vNext = thisPolygon.vertices[(i + 1) % thisPolygon.vertices.length]
-
-        if (orientation(vPrev, v, vNext) == ORIENTATION.COLLINEAR) {
-          thisPolygon.vertices.splice(i, 1)
-          i -= 1
-        }
+    // Begin tracing
+    const startingVertex = builder.lastVertex;
+    do {
+      let edge = new Segment(builder.lastVertex, tracer.vertexNext);
+      // Overlapping vertices can cause intersection point to be on top of the next vertex
+      if (equals(edge.distanceSqrd(), 0)) {
+        tracer.iVertex = tracer.iVertexNext;
+        continue;
       }
 
-      // Find convex hull polygon
-      if (!thisPolygon.counterclockwise) convexHullIndex = t
-    }
+      // Check for edge intersections on other structure
+      let intersectionOtherIndices = tracer.structureOther.edges.reduce((found, otherEdge, iOtherEdge) => {
+        if (otherEdge.intersects(edge)) found.push(iOtherEdge);
+        return found;
+      }, []);
 
-    let convexHullPolygon = newPolygons.splice(convexHullIndex, 1)[0]
-    convexHullPolygon.holes = newPolygons.concat(this.holes).concat(peer.holes)
+      if (intersectionOtherIndices.length === 0) {
+        // No intersections, continue to next vertex on current structure
+        tracer.iVertex = tracer.iVertexNext;
+        builder.vertices.push(tracer.vertex);
+        continue;
+      }
 
-    return convexHullPolygon
+      // Get intersection point closest to current vertex
+      let closestIntersection = intersectionOtherIndices.reduce((prev, iOtherEdge) => {
+        let intersectionPoint = tracer.structureOther.edges[iOtherEdge].intersectionPoint(edge);
+        if (intersectionPoint === undefined) { // Parallel lines
+          intersectionPoint = tracer.structureOther.edges[iOtherEdge].b; // TODO assumes both CCW structures
+        }
+        let distSqrd = Segment.distanceSqrd(intersectionPoint, builder.lastVertex);
+        // TODO - verify we're not taking intersection points that are on the edge - or maybe we need those
+        if (!equals(distSqrd, 0) && distSqrd < prev.distSqrd) return {distSqrd, point: intersectionPoint, index: iOtherEdge};
+        return prev;
+      }, {distSqrd: Infinity});
+
+      if (closestIntersection.point === undefined) {
+        // Intersection is collinear, continue to next vertex on current structure
+        tracer.iVertex = tracer.iVertexNext;
+        builder.vertices.push(tracer.vertex);
+        continue;
+      }
+
+      builder.vertices.push(closestIntersection.point);
+      tracer.structureFlip(closestIntersection.index);
+    } while (startingVertex !== tracer.vertexNext);
+
+    return new Polygon(builder.vertices);
   }
 
-  // TODO: Fails edge cases.
   /**
-   * Attempts to find the shortest line out of the polygon from a given point.
-   * @param {Point} point Inside the polygon to leave from
-   * @param {Number} extrude_amount Amount to buffer out the exit point
-   * @returns
+   * Finds the shortest segment out of the polygon from a starting point.
+   * @param {Point} point starting point
+   * @param {Number} extrudeAmount optional. defaults to smallest amount possible
+   * @returns {Point} shortest Point out of polygon, or the starting point if not within polygon
    */
-  closestPointOutsideFrom(point, extrudeAmount = 2) {
-    if (!this.containsPoint(point)) return point
-    // Find closest point outside of polygon
-    let closest = { distSqrd: undefined, point: undefined }
-    this.edges().forEach(edge => {
-      let closestPoint = edge.closestPointOnSegmentTo(point)
-      let closestPointDistSqrd = new Segment(point, closestPoint).distanceSqrd()
-      if (closest.distSqrd === undefined || closestPointDistSqrd < closest.distSqrd ) {
-        closest.distSqrd = closestPointDistSqrd
-        closest.point = closestPoint
+  closestPointOutsideFrom(point, extrudeAmount = undefined) {
+    if (!this.containsPoint(point)) return point;
+
+    let closest = this.edges.reduce((smallest, edge, i) => {
+      let escapeSegment = new Segment(point, edge.closestPointOnSegmentTo(point));
+      let distSqrd = escapeSegment.distanceSqrd();
+      return distSqrd < smallest.distSqrd ? {distSqrd, escapeSegment, vIndex: i} : smallest;
+    }, {distSqrd: Infinity});
+
+    if (extrudeAmount === undefined) {
+      // The point should be extended out by the smallest amount possible that fails `containsPoint`.
+      // minNumber() gives the smallest floating point precision we can add to a Number but this must
+      // be offset by the magnitude of the input Point's components, as this cuts into the floating
+      // point's decimal precision.
+      extrudeAmount = minNumber(Math.max(point.x, point.y));
+    }
+    // TODO - extrude could end up back inside polygon
+
+    // On edge
+    if (closest.distSqrd === 0) {
+      let extendVector;
+      // On endpoint A, extendBy outer angle of vertex
+      if (this.edges[closest.vIndex].a.equals(closest.escapeSegment.b)) {
+        let outerAngle = boundAngle(2 * Math.PI - this.interiorAngleVertex(closest.vIndex));
+        let iPrev = closest.vIndex === 0 ? this.vertices.length - 1 : closest.vIndex - 1;
+        // extendVector = new Vector({magnitude: 1, angle: boundAngle(this.edges[iPrev].angle - outerAngle / 2)});
+        extendVector = new Vector({magnitude: 1, angle: boundAngle(this.edges[iPrev].vector.copy.flip().angle + outerAngle / 2)});
       }
-    });
-    // Extend out result by 2 unit to avoid rounding errors
-    return new Segment(point, closest.point).vector().extendBy(extrudeAmount).asPoint().add(point) // closest.point
+      // On endpoint B, extendBy outer angle of vertex
+      else if (this.edges[closest.vIndex].b.equals(closest.escapeSegment.b)) {
+        let outerAngle = boundAngle(2 * Math.PI - this.interiorAngleVertex((closest.vIndex + 1) % this.vertices.length));
+        extendVector = new Vector({magnitude: 1, angle: boundAngle(this.edges[closest.vIndex].vector.copy.flip().angle + outerAngle / 2)});
+      }
+      // On edge, extendBy edge normal
+      else {
+        extendVector = this.edges[closest.vIndex].vector.normal();
+        if (this.clockwise) extendVector.flip();
+      }
+      extendVector.magnitude = extrudeAmount;
+      return point.copy.add(extendVector);
+    }
+    return point.copy.add(closest.escapeSegment.vector.extendBy(extrudeAmount));
   }
 
   /**
@@ -317,27 +333,28 @@ export default class Polygon {
     let vNext = this.vertices[(v + 1) % this.vertices.length]
     let toPrev = new Vector(vPrev.x - vertex.x, vPrev.y - vertex.y)
     let toNext = new Vector(vNext.x - vertex.x, vNext.y - vertex.y)
-    let a = (toPrev.angle() - toNext.angle() + Math.PI * 2) % (Math.PI * 2)
-    return this.counterclockwise ? 2 * Math.PI - a : a
+    let dAngle = toPrev.angle - toNext.angle;
+    return this.clockwise ? boundAngle(2 * Math.PI - dAngle) : boundAngle(dAngle);
   }
 
   /**
    * Extrude polygon vertices. An approximation of padding or "stroking" a polygon.
    * @returns {Polyon} with extruded vertices from target
    */
-  extrudeVertices(vertices, extrudeAmount) {
+  extrudeVertices(extrudeAmount) {
+    if (extrudeAmount === 0) return this.copy;
     let extrudedVertices = [];
-    for (let v = 0; v < vertices.length; v++) {
-      let cV = vertices[v];
-      let nV = vertices[(v+1)%vertices.length];
-      let pV = vertices[(v-1) < 0 ? (vertices.length+(v-1)) : (v-1)];
+    for (let v = 0; v < this.vertices.length; v++) {
+      let cV = this.vertices[v];
+      let nV = this.vertices[(v+1) % this.vertices.length];
+      let pV = this.vertices[(v-1) < 0 ? (this.vertices.length+(v-1)) : (v-1)];
       // Vectors from current vertex out to previous and next vertex.
-      let pVec = (new Vector(pV.x - cV.x, cV.y - pV.y)).normalized();
-      let nVec = (new Vector(nV.x - cV.x, cV.y - nV.y)).normalized();
+      let pVec = (new Vector(pV.x - cV.x, cV.y - pV.y)).normalize();
+      let nVec = (new Vector(nV.x - cV.x, cV.y - nV.y)).normalize();
       let angle = Math.acos(pVec.dotProduct(nVec))
       let cross = pVec.crossProduct(nVec)
       if (cross > 0) angle = 2*Math.PI - angle
-      let angleBetween = angle/2 + nVec.angle();
+      let angleBetween = angle/2 + nVec.angle;
 
       // Extend a point out from current vertex.
       extrudedVertices.push(
@@ -350,21 +367,25 @@ export default class Polygon {
     return new Polygon(extrudedVertices);
   }
 
-  /** Check if the polygon is convex. */
+  /** Check if the polygon is convex. Memoized. @returns {bool} */
   convex() {
     return !this.concave()
   }
+
+  /** Check if the polygon is concave. Memoized. @returns {bool} */
   concave() {
-    return this.vertices.some(v => this.interiorAngleVertex(v) > Math.PI)
+    if (this._concave === undefined) {
+      this._concave = this.vertices.some(v => this.interiorAngleVertex(v) > Math.PI);
+    }
+    return this._concave;
   }
 
   logString() {
-    let logStringBuilder = ''
-    for (let v = 0; v < this.vertices.length; v++) {
-      let vertex = this.vertices[v]
-      logStringBuilder += ` ${vertex.logString()}`
-    }
-    // this.vertices.forEach(vertex => logStringBuilder += ` ${vertex.logString()}`)
-    return logStringBuilder
+    return this.vertices.map(vertex => vertex.logString()).join(' ');
+  }
+
+  /** Compare vertices between structures @param {Polygon} peer @returns {boolean} */
+  equals(peer) {
+    return this.vertices.every((vertex, i) => vertex.equals(peer.vertices[i]));
   }
 }

@@ -1,31 +1,162 @@
 import Point from './point.js'
-import Line from './line.js'
-import Ray from './ray.js'
 import Vector from './vector.js'
-import { orientation, ORIENTATION } from '../geometry.js'
+import { orientation, ORIENTATION, validNumber } from '../geometry.js'
 
-/// A segment is composed of 2 vertices.
+// TODO can be arranged as two points or Point/Vector
+
+/** `this._a`, `this._b` populated */
+const POINT_TO_POINT = "point_to_point";
+/** `this._a`, `this._vector` populated */
+const POINT_VECTOR = "point_vector";
+
+/**
+ * Structure representing a line bounded by two vertices. Vertices for construction
+ * can be Point structures (or object with x/y keys with numeric value). Vertex 2 (or "B")
+ * can be a vector in which case the Vertex (or "A") will be treated as the origin.
+ * TODO ? Structure endpoints A and B are stored as frozen copies of Points.
+ * Getting A or B will return frozen Point copies to raise an error (in strict mode)
+ * when attempting to manipulate endpoints.
+ */
 export default class Segment {
+  /**
+   * @param {Point | {x: int, y: int}} vertex1
+   * @param {Point | {x: int, y: int} | Vector | {magnitude: int, angle: int}} vertex2
+   */
   constructor(vertex1, vertex2) {
-    if (vertex1 == undefined || vertex2 == undefined) {
-      throw "Passed in undefined segment vertex?"
+    if (vertex1 instanceof Point) {
+      vertex1 = vertex1.copy;
+    } else if (typeof vertex1 === 'object' && vertex1.x !== undefined && vertex1.y !== undefined) {
+      if (!validNumber(vertex1.x)) throw `[SEGMENT INIT ERROR]: Vertex 1 X not an integer: ${vertex1.x}`;
+      if (!validNumber(vertex1.y)) throw `[SEGMENT INIT ERROR]: Vertex 1 Y not an integer: ${vertex1.y}`;
+      vertex1 = new Point(vertex1.x, vertex1.y);
+    } else {
+      throw `[SEGMENT INIT ERROR]: Vertex 1 not viable construction point: ${vertex1}`;
     }
     this._a = vertex1;
-    this._b = vertex2;
-    this._distance = undefined
+    Object.freeze(this._a);
+
+    if (vertex2 instanceof Point) {
+      this._b = vertex2.copy;
+      Object.freeze(this._b);
+    } else if (vertex2 instanceof Vector) {
+      this._vector = vertex2.copy;
+    } else if (typeof vertex2 === 'object') {
+      if (vertex2.x !== undefined && vertex2.y !== undefined) {
+        if (!validNumber(vertex2.x)) throw `[SEGMENT INIT ERROR]: Vertex 2 X not an integer: ${vertex2.x}`;
+        if (!validNumber(vertex2.y)) throw `[SEGMENT INIT ERROR]: Vertex 2 Y not an integer: ${vertex2.y}`;
+        this._b = new Point(vertex2.x, vertex2.y);
+        Object.freeze(this._b);
+      } else if (vertex2.magnitude !== undefined && vertex2.angle !== undefined) {
+        this._vector = new Vector(vertex2);
+      } else {
+        throw `[SEGMENT INIT ERROR]: Vertex 2 not viable construction point: ${vertex2}`;
+      }
+    } else {
+      throw `[SEGMENT INIT ERROR]: Vertex 2 not viable construction point: ${vertex2}`;
+    }
+
+    // TODO - should throw on segment a === b? disallow zero magnitude?
   }
 
-  /// Gets point A if no parameter provided. Sets A if point provided.
-  a(point) {
-    if (point === undefined) return this._a
-    this._distance = undefined
-    this._a = point
+  // ------------------------ Properties
+
+  /** Origin vertex of structure. @returns {Point} Immutable (frozen) */
+  get a() {
+    return this._a;
   }
-  /// Gets point B if no parameter provided. Sets B if point provided.
-  b(point) {
-    if (point === undefined) return this._b
-    this._distance = undefined
-    this._b = point
+  set a(val) {
+    if (!(val instanceof Point)) throw `[ERROR ASSIGN origin]: Non-point vertex: ${val}`;
+    this.b; // Force `b` generation if moving `a` as this invalidates `_vector`.
+    this._vector = undefined;
+    this._a = val;
+  }
+
+  /** @alias a */
+  get origin() { return this.a; }
+  set origin(val) { this.a = val; }
+
+  /** Target vertex of segment. @returns {Point} Immutable (frozen) */
+  get b() {
+    this._b ??= this._a.copy.add(this._vector);
+    return this._b;
+  }
+  set b(val) {
+    if (!(val instanceof Point)) throw `[ERROR ASSIGN target]: Non-point vertex: ${val}`;
+    this._b = val;
+    this._vector = undefined;
+  }
+
+  /** Structure as a vector from A to B with origin (0,0). @returns {Vector} Origin (0,0). */
+  get vector() {
+    this._vector ??= this._b.copy.minus(this._a).vector;
+    return this._vector;
+  }
+  set vector(_) { throw "Cannot set vector of a Segment structure." }
+
+  /** Length of segment. @returns {int} */
+  get magnitude() { return this.vector.magnitude; }
+  set magnitude(_) { throw "Cannot set magnitude of a Segment structure." }
+  /** @alias magnitude */
+  get distance() { return this.magnitude; }
+  set distance(_) { throw "Cannot set distance of a Segment structure." }
+  /** @alias magnitude */
+  get length() { return this.magnitude; }
+  set length(_) { throw "Cannot set length of a Segment structure." }
+
+  /** Get structure angle from A to B. @returns {Int} Radians */
+  get angle() { return this.vector.angle; }
+  set angle(_) { throw "Cannot set angle of a Segment structure." }
+
+  /** Copies segments available properties . @returns {Segment} */
+  get copy() {
+    let copySegment;
+    if (this._arrangedAs(POINT_TO_POINT)) {
+      copySegment = new Segment(this._a, this._b);
+    } else {
+      copySegment = new Segment(this._a, this._vector);
+    }
+    return copySegment
+  }
+
+  get slope() {
+    return (this.b.y - this.a.y) / (this.b.x - this.a.x);
+  }
+  set slope(_) { throw 'Cannot set slope of a Segment structure.' }
+
+  // ------------------------ Functions
+
+  /** Swaps structure's endpoints. `b` becomes the new origin. @returns {this} */
+  flip() {
+    let hold = this._a;
+    this._a = this._b;
+    this._b = hold;
+    if (this._vector !== undefined) this.vector.flip();
+    return this;
+  }
+
+  /** Checks target's A and B with peer's A and B. @param {Segment} peer @returns {boolean} */
+  equals(peer, precision = undefined) {
+    return this._a.equals(peer._a, precision) && this._b.equals(peer._b, precision);
+  }
+
+  /** Structure stringified for readability. @returns {string} "(x,y) -> (x,y)" or "(x,y) plus <vector>" */
+  logString() {
+    if (this._arrangedAs(POINT_TO_POINT)) {
+      return this._a.logString() + " -> " + this._b.logString();
+    }
+    return this._a.logString() + " plus " + this._vector.logString();
+  }
+
+  /** Middle point between A and B. @returns {Point} */
+  midpoint() {
+    let dX = this.b.x - this._a.x
+    let dY = this.b.y - this._a.y
+    return new Point(this._a.x + dX/2, this._a.y + dY/2)
+  }
+
+  /** Retrieves length squared. Useful if comparing relative distances. Faster than getting `distance`. @returns {int} */
+  distanceSqrd() {
+    return this.vector.magnitudeSqrd();
   }
 
   // https://www.codeproject.com/Tips/862988/Find-the-Intersection-Point-of-Two-Line-Segments
@@ -33,52 +164,48 @@ export default class Segment {
   // true of false if two segments intersect, use intersects(). Will return undefined
   // if end points match
   intersectionPoint(segment) {
-    if (segment instanceof Ray) {
-      segment = new Segment(segment.origin, new Point(999999 * Math.cos(segment.angle) + segment.origin.x, 999999 * Math.sin(segment.angle) + segment.origin.y))
-    }
-
     // Check for end points matching
-    if (this._a.equals(segment._a) || this._a.equals(segment._b) || this._b.equals(segment._a) || this._b.equals(segment._b)) {
-      return undefined;
+    if (this.a.equals(segment.a) || this.a.equals(segment.b)) {
+      return this.a.copy; // shared endpoints
     }
-    let r = this._b.minus(this._a);
-    let s = segment._b.minus(segment._a);
-    let rxs = r.cross(s);
-    let qpxr = (segment._a.minus(this._a)).cross(r);
+    if (this.b.equals(segment.a) || this.b.equals(segment.b)) {
+      return this.b.copy; // shared endpoints
+    }
 
-    if (rxs == 0 && qpxr == 0) {
-      return undefined; // collinear segments. ignoring.
+    let vOrigins = segment.a.copy.minus(this.a).vector;
+    let cross = this.vector.crossProduct(segment.vector);
+    let crossOrigin = vOrigins.crossProduct(this.vector);
+
+    if (cross == 0 && crossOrigin == 0) {
+      return undefined; // collinear segments
     }
-    if (rxs == 0 && qpxr != 0) {
+    if (cross == 0 && crossOrigin != 0) {
       return undefined; // parallel
     }
 
-    let t = (segment._a.minus(this._a)).cross(s) / rxs;
-    let u = (segment._a.minus(this._a)).cross(r) / rxs;
+    let t = vOrigins.crossProduct(segment.vector) / cross;
+    let u = crossOrigin / cross;
 
-    if (rxs != 0 && (0 <= t && t <= 1) && (0 <= u && u <= 1)) {
-      // Intersection
-      return new Point(
-        (this._a.x + r.x * t),
-        (this._a.y + r.y * t)
+    if (cross != 0 && (0 <= t && t <= 1) && (0 <= u && u <= 1)) {
+      return new Point( // Intersection
+        (this.a.x + this.vector.x * t),
+        (this.a.y + this.vector.y * t)
       );
     }
     return undefined; // No intersection
   }
 
-  // Same as intersectionPoint() but returns true or false (more efficient)
-  // If the segments share end points then intersection is false.
+  /** Check for segment overlap. Faster than `intersectionPoint()`.
+   * @param {Segment} segment
+   * @returns {boolean} true if segments overlap including endpoints
+   */
   intersects(segment) {
-    if (segment instanceof Ray)
-      segment = new Segment(segment.origin, new Point(999999 * Math.cos(segment.angle) + segment.origin.x, 999999 * Math.sin(segment.angle) + segment.origin.y))
-
     let o1 = orientation(this._a, this._b, segment._a);
     let o2 = orientation(this._a, this._b, segment._b);
     let o3 = orientation(segment._a, segment._b, this._a);
     let o4 = orientation(segment._a, segment._b, this._b);
     // General Cases:
     if (o1 != o2 && o3 != o4) return true
-
     // Special Cases:
     if (o1 == ORIENTATION.COLLINEAR && segment._a.isOnSegment(this)) return true;
     if (o2 == ORIENTATION.COLLINEAR && segment._b.isOnSegment(this)) return true;
@@ -87,73 +214,51 @@ export default class Segment {
     // Doesn't satisfy any cases:
     return false;
   }
-  /// Returns segment as a Vector object.
-  vector() {
-    return new Vector(this._b.x - this._a.x, this._b.y - this._a.y);
-  }
-  /// Returns segment as a Line object.
-  line() {
-    return new Line(this._a, this._b);
-  }
-  /// Gets angle made by Segment from A to B.
-  angle() {
-    return Math.atan2(this._b.y - this._a.y, this._b.x - this._a.x);
-  }
-  /// Replaces point A with point B. And vice versa.
-  flip() {
-    return new Segment(this._b, this._a);
-  }
-  /// Checks target point A and B with passed in segment's A and B.
-  equals(segment) {
-    return (this._a.equals(segment._a) && this._b.equals(segment._b));
-  }
-  /// Stringified description of segment.
-  logString() {
-    return this._a.logString() + " -> " + this._b.logString();
-  }
-  /// The distance before square-rooting. Useful if comparing relative distances rather
-  /// than needing to know the actual distance (more efficient).
-  distanceSqrd() {
-    if (this._distance !== undefined) return Math.pow(this._distance, 2)
-    return this.vector().magnitudeSqrd();
-  }
-  /// The magnitude of the segment.
-  distance() {
-    if (this._distance !== undefined) return this._distance
-    this._distance = this.vector().magnitude();
-    return this._distance
-  }
-  /// Returns the middle point between A and B as a Point object.
-  midpoint() {
-    let dX = this._b.x - this._a.x
-    let dY = this._b.y - this._a.y
-    return new Point(this._a.x + dX/2, this._a.y + dY/2)
-  }
 
   /**
    * Determine the side which a point lies based on direction of a segment from A to B.
    * Technically, this is the cross product between this segment and a segment from A to the point.
    * @param {Point} point The point to check which side it lies on in reference to the segment.
-   * @returns {Integer} A positive value indicates the left side, a negative value the right side.
+   * @returns {Integer} A positive value (1) indicates the left side, a negative value (-1) the right side. 0 if point lies on the segment.
    */
   directionTo(point) {
-    return this.vector().crossProduct(Vector.fromSegment(this.a(), point)) * -1
+    let cross = this.vector.crossProduct(Vector.fromSegment(this._a, point));
+    if (cross > 0) return 1;
+    if (cross < 0) return -1;
+    return 0;
   }
-  /// Returns the point on the segment which is closest to the given point.
+
+  /** Compute point on Segment closest to given point. @param {Point} point @returns {Point} */
   closestPointOnSegmentTo(point) {
-    let aToPoint = new Segment(this._a, point)
-    let proj = aToPoint.vector().projection(this.vector())
+    let aToPoint = new Segment(this._a, point);
+    let proj = aToPoint.vector.projection(this.vector);
     // Check if closer to segments endpoints
-    if (proj.quadrant() != this.vector().quadrant()) return this._a
-    if (this.distanceSqrd() < proj.magnitudeSqrd()) return this._b
-    return this._a.add(proj.asPoint())
+    if (proj.quadrant() != this.vector.quadrant()) return this._a;
+    if (this.distanceSqrd() < proj.magnitudeSqrd()) return this._b;
+    return this._a.copy.add(proj);
   }
-  /// Gets the distance between the two points before square-rooting.
+
+  // --------------------- Static methods
+
+  /** Retrieves length squared between points. @param {Point} a @param {Point} b @returns {int} Length squared */
   static distanceSqrd(a, b) {
-    return new Segment(a, b).distanceSqrd()
+    return new Segment(a, b).distanceSqrd();
   }
-  /// Gets the distance between the two points.
+
+  /** Retrieves length between points. @param {Point} a @param {Point} b @returns {int} Length */
   static distance(a, b) {
-    return new Segment(a, b).distance()
+    return new Segment(a, b).distance;
+  }
+
+  // --------------------- Internal methods
+
+  /** INTERNAL: Check for valid arrangement style */
+  _arrangedAs(arrangement) {
+    if (arrangement === POINT_TO_POINT) {
+      return this._a !== undefined && this._b !== undefined;
+    }
+    if (arrangement === POINT_VECTOR) {
+      return this._a !== undefined && this._vector !== undefined;
+    }
   }
 }
