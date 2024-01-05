@@ -57,6 +57,7 @@ describe('clockwise', function() {
       new Point(0, 1)
     ]);
     expect(testPolygon.clockwise).toBe(false);
+    expect(testPolygon.counterclockwise).toBe(true);
   })
   it('matches counter', function() {
     let testPolygon = new Polygon([
@@ -386,6 +387,33 @@ describe('union', function() {
       {x: 0, y: 1}
     ]))).toBe(true);
   });
+  it('handles final edge overlap', function() {
+    let testPolygonA = new Polygon([
+      {x: 1954, y: 864},
+      {x: 1796, y: 488},
+      {x: 1642, y: 860}
+    ]).reverse();
+    let testPolygonB = new Polygon([
+      {x: 1912, y: 998},
+      {x: 1814, y: 756},
+      {x: 1728, y: 1014}
+    ]).reverse();
+    let unionPolygon = testPolygonA.union(testPolygonB).reverse();
+    console.log(`Polygon (ccw: ${unionPolygon.counterclockwise}) ${unionPolygon.logString()}`)
+    expect(unionPolygon.equals(new Polygon([
+      {x: 1954, y: 864},
+      {x: 1796, y: 488},
+      {x: 1642, y: 860},
+      // Intersection
+      {x: 1778.7489361702128, y: 861.7531914893617},
+
+      {x: 1728, y: 1014},
+      {x: 1912, y: 998},
+
+      // Intersection
+      {x: 1857.2331451698797, y: 862.7593992970498}
+    ]))).toBe(true);
+  });
   it('handles edge overlap', function() {
     let testPolygonA = new Polygon([
       {x: 0, y: 0},
@@ -557,6 +585,37 @@ describe('extrudeVertices', function() {
       new Point(0, 1)
     ]);
     expect(testPolygon.extrudeVertices(0).equals(testPolygon)).toBe(true);
+  })
+})
+
+describe('reverse', function() {
+  it('maintains start point', function() {
+    let testPolygon = new Polygon([
+      {x: 0, y: 0},
+      {x: 1, y: 0},
+      {x: 0.5, y: 1},
+    ]);
+    expect(testPolygon.copy.reverse().equals(new Polygon([
+      {x: 0, y: 0},
+      {x: 0.5, y: 1},
+      {x: 1, y: 0},
+    ]))).toBe(true);
+  })
+  it('is idempotent', function() {
+    let testPolygon = new Polygon([
+      {x: 0, y: 0},
+      {x: 1, y: 0},
+      {x: 0.5, y: 1},
+    ]);
+    expect(testPolygon.copy.reverse().reverse().equals(testPolygon)).toBe(true);
+  })
+  it('flips clockwise state', function() {
+    let testPolygon = new Polygon([
+      {x: 0, y: 0},
+      {x: 1, y: 0},
+      {x: 0.5, y: 1},
+    ]);
+    expect(testPolygon.clockwise).toBe(testPolygon.copy.reverse().counterclockwise);
   })
 })
 

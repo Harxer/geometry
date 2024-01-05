@@ -1,6 +1,6 @@
 {
   "name": "@harxer/geometry",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Harxer geometry calculation helper methods.",
   "main": "geometry.js",
   "type": "module",

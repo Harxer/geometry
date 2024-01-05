@@ -181,6 +181,15 @@ export default class Polygon {
     return this.edges.some(edge => peer.edges.some(peerEdge => edge.intersects(peerEdge)));
   }
 
+  /** Reverses the vertex order and, therefore, the clockwise state. */
+  reverse() {
+    this._vertices.reverse();
+    this._vertices.splice(0, 0, this._vertices.pop())
+    this._edges = undefined;
+    this._clockwise = !this._clockwise;
+    return this;
+  }
+
   /**
    * Joins two overlapping polygons together. Does not affect either polygons,
    * the new polygon union will be returned or undefined if they don't overlap.
@@ -382,6 +391,11 @@ export default class Polygon {
 
   logString() {
     return this.vertices.map(vertex => vertex.logString()).join(' ');
+  }
+
+  /** Gets plain JS object used for serialization. @returns {[Object]}*/
+  json() {
+    return this.vertices.map(vertex => vertex.json());
   }
 
   /** Compare vertices between structures @param {Polygon} peer @returns {boolean} */

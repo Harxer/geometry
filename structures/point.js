@@ -73,6 +73,11 @@ export default class Point {
     return `(${this.x}, ${this.y})`;
   }
 
+  /** Gets plain JS object used for serialization. */
+  json() {
+    return {x: this.x, y: this.y};
+  }
+
   /** Move point in direction of given vector. @param {Vector} vector @returns {Point} this */
   add(vector) {
     this._x += vector.x;
