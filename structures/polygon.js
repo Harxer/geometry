@@ -247,7 +247,9 @@ export default class Polygon {
       if (intersectionOtherIndices.length === 0) {
         // No intersections, continue to next vertex on current structure
         tracer.iVertex = tracer.iVertexNext;
-        builder.vertices.push(tracer.vertex);
+        // Last edge needs to be checked for intersection but shouldn't be added to builder if
+        // no intersections found since this will shape is closed by the polygon constructor (final vertex added).
+        if (startingVertex !== tracer.vertex) builder.vertices.push(tracer.vertex);
         continue;
       }
 
@@ -266,13 +268,14 @@ export default class Polygon {
       if (closestIntersection.point === undefined) {
         // Intersection is collinear, continue to next vertex on current structure
         tracer.iVertex = tracer.iVertexNext;
-        builder.vertices.push(tracer.vertex);
+        // See comment above "Last edge needs to be checked..."
+        if (startingVertex !== tracer.vertex) builder.vertices.push(tracer.vertex);
         continue;
       }
 
       builder.vertices.push(closestIntersection.point);
       tracer.structureFlip(closestIntersection.index);
-    } while (startingVertex !== tracer.vertexNext);
+    } while (startingVertex !== tracer.vertex);
 
     return new Polygon(builder.vertices);
   }

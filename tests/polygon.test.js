@@ -387,31 +387,31 @@ describe('union', function() {
       {x: 0, y: 1}
     ]))).toBe(true);
   });
+  // Special situation where final edge overlaps but shouldn't be added to builder vertices
   it('handles final edge overlap', function() {
     let testPolygonA = new Polygon([
-      {x: 1954, y: 864},
-      {x: 1796, y: 488},
-      {x: 1642, y: 860}
-    ]).reverse();
-    let testPolygonB = new Polygon([
-      {x: 1912, y: 998},
-      {x: 1814, y: 756},
-      {x: 1728, y: 1014}
-    ]).reverse();
-    let unionPolygon = testPolygonA.union(testPolygonB).reverse();
-    console.log(`Polygon (ccw: ${unionPolygon.counterclockwise}) ${unionPolygon.logString()}`)
-    expect(unionPolygon.equals(new Polygon([
-      {x: 1954, y: 864},
-      {x: 1796, y: 488},
       {x: 1642, y: 860},
-      // Intersection
-      {x: 1778.7489361702128, y: 861.7531914893617},
-
+      {x: 1796, y: 488},
+      {x: 1954, y: 864}
+    ]);
+    let testPolygonB = new Polygon([
       {x: 1728, y: 1014},
+      {x: 1814, y: 756},
       {x: 1912, y: 998},
+    ]);
+    let unionPolygon = testPolygonA.union(testPolygonB);
+    expect(unionPolygon.equals(new Polygon([
+      {x: 1642, y: 860},
+      {x: 1796, y: 488},
+      {x: 1954, y: 864},
+      // Intersection
+      {x: 1857.2331451698797, y: 862.7593992970498},
+
+      {x: 1912, y: 998},
+      {x: 1728, y: 1014},
 
       // Intersection
-      {x: 1857.2331451698797, y: 862.7593992970498}
+      {x: 1778.7489361702128, y: 861.7531914893617}
     ]))).toBe(true);
   });
   it('handles edge overlap', function() {
