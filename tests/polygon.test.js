@@ -390,28 +390,29 @@ describe('union', function() {
   // Special situation where final edge overlaps but shouldn't be added to builder vertices
   it('handles final edge overlap', function() {
     let testPolygonA = new Polygon([
+      {x: 1954, y: 864},
       {x: 1642, y: 860},
       {x: 1796, y: 488},
-      {x: 1954, y: 864}
     ]);
     let testPolygonB = new Polygon([
-      {x: 1728, y: 1014},
-      {x: 1814, y: 756},
-      {x: 1912, y: 998},
+      {x: 1714, y: 984},
+      {x: 1792, y: 724},
+      {x: 1900, y: 978},
     ]);
-    let unionPolygon = testPolygonA.union(testPolygonB);
-    expect(unionPolygon.equals(new Polygon([
+    expect(testPolygonA.union(testPolygonB).equals(new Polygon([
+      {x: 1954, y: 864},
+
+      // Intersection
+      {x: 1850.9658952496954, y: 862.6790499390986},
+
+      {x: 1900, y: 978},
+      {x: 1714, y: 984},
+
+      // Intersection
+      {x: 1750.7816091954023, y: 861.3946360153257},
+
       {x: 1642, y: 860},
       {x: 1796, y: 488},
-      {x: 1954, y: 864},
-      // Intersection
-      {x: 1857.2331451698797, y: 862.7593992970498},
-
-      {x: 1912, y: 998},
-      {x: 1728, y: 1014},
-
-      // Intersection
-      {x: 1778.7489361702128, y: 861.7531914893617}
     ]))).toBe(true);
   });
   it('handles edge overlap', function() {
