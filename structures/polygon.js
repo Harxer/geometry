@@ -9,14 +9,14 @@ export default class Polygon {
    * @param {[Polygon]} holes Internal polygon holes
    */
   constructor(vertices, holes) {
-    if (!Array.isArray(vertices)) throw `[POLYGON INIT ERROR] vertices not array: ${vertices}`
-    if (vertices.length <= 2) throw `[POLYGON INIT ERROR] 3 vertices required to make a polygon: ${vertices.length}`
+    if (!Array.isArray(vertices)) throw Error(`[POLYGON INIT ERROR] vertices not array: ${vertices}`)
+    if (vertices.length <= 2) throw Error(`[POLYGON INIT ERROR] 3 vertices required to make a polygon: ${vertices.length}`)
 
     this._vertices = [];
     for (let vertex of vertices) {
       if (typeof vertex === 'object') {
-        if (!validNumber(vertex.x)) throw `[POLYGON INIT ERROR]: X component not an integer: ${vertex.x}`;
-        if (!validNumber(vertex.y)) throw `[POLYGON INIT ERROR]: Y component not an integer: ${vertex.y}`;
+        if (!validNumber(vertex.x)) throw Error(`[POLYGON INIT ERROR]: X component not an integer: ${vertex.x}`);
+        if (!validNumber(vertex.y)) throw Error(`[POLYGON INIT ERROR]: Y component not an integer: ${vertex.y}`);
         vertex = new Point(vertex.x, vertex.y);
       }
       this._vertices.push(vertex);
@@ -35,17 +35,17 @@ export default class Polygon {
               excessVertices.push(aEdgeI + 1);
             } else {
               // Verify no overlap, no backtracking
-              throw `[POLYGON INIT ERROR] edge neighbors collinear: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`;
+              throw Error(`[POLYGON INIT ERROR] edge neighbors collinear: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`);
             }
           }
           // TODO auto repair endpoint overlap
         } else if (aEdgeI === 0 && bEdgeI === this.edges.length - 1) {
           // First edge has to ignore endpoint overlap with closing edge
           if (orientation(this.edges[bEdgeI].a, this.edges[bEdgeI].b, this.edges[aEdgeI].b) == ORIENTATION.COLLINEAR) {
-            throw `[POLYGON INIT ERROR] closing edge collinear: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`;
+            throw Error(`[POLYGON INIT ERROR] closing edge collinear: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`);
           }
         } else if (this.edges[aEdgeI].intersects(this.edges[bEdgeI])) {
-          throw `[POLYGON INIT ERROR] edges intersect: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`;
+          throw Error(`[POLYGON INIT ERROR] edges intersect: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`);
         }
       }
     }
@@ -76,7 +76,7 @@ export default class Polygon {
   get vertices() {
     return this._vertices;
   }
-  set vertices(_) { throw 'Cannot modify vertices of a Polygon structure.' }
+  set vertices(_) { throw Error('Cannot modify vertices of a Polygon structure.') }
 
   /** Get vertices as connected segments @returns {[Segment]} */
   get edges() {
@@ -90,7 +90,7 @@ export default class Polygon {
     }
     return this._edges;
   }
-  set edges(_) { throw 'Cannot modify edges of Polygon structure.' }
+  set edges(_) { throw Error('Cannot modify edges of Polygon structure.') }
 
   /** Get average center of all vertices */
   get circumcenter() {
@@ -100,7 +100,7 @@ export default class Polygon {
     }
     return this._circumcenter;
   }
-  set circumcenter(_) { throw 'Cannot modify circumcenter of Polygon structure.' }
+  set circumcenter(_) { throw Error('Cannot modify circumcenter of Polygon structure.') }
 
   /** Get circumradius (smallest bounding circle) */
   get circumradius() {
@@ -110,7 +110,7 @@ export default class Polygon {
     }
     return this._circumradius;
   }
-  set circumradius(_) { throw 'Cannot modify circumradius of Polygon structure.' }
+  set circumradius(_) { throw Error('Cannot modify circumradius of Polygon structure.') }
 
   /** Get clockwise rule */
   get clockwise() {
@@ -121,14 +121,14 @@ export default class Polygon {
       //   let vNext = this._vertices[(i + 1) % this._vertices.length]
       //   averageSlope += (vNext.x - v.x) * (vNext.y + v.y)
       // }
-      if (equals(averageSlope, 0)) throw `[POLYGON INIT ERROR] vertices are colllinear`
+      if (equals(averageSlope, 0)) throw Error('[POLYGON INIT ERROR] vertices are colllinear')
       this._clockwise = (averageSlope > 0)
     }
     return this._clockwise;
   }
-  set clockwise(_) { throw 'Cannot modify clockwise state of Polygon structure.'}
+  set clockwise(_) { throw Error('Cannot modify clockwise state of Polygon structure.') }
   get counterclockwise() { return !this.clockwise; }
-  set counterclockwise(_) { throw 'Cannot modify counterclockwise state of Polygon structure.'}
+  set counterclockwise(_) { throw Error('Cannot modify counterclockwise state of Polygon structure.') }
 
   /** TODO: Optimize @returns {Polygon} */
   get copy() {

@@ -9,8 +9,8 @@ export default class Point {
    * @throws if components are not valid numbers
    */
   constructor(x, y) {
-    if (!validNumber(x)) throw `[POINT INIT ERROR]: X not an integer: ${x}`;
-    if (!validNumber(y)) throw `[POINT INIT ERROR]: Y not an integer: ${y}`;
+    if (!validNumber(x)) throw Error(`[POINT INIT ERROR]: X not an integer: ${x}`);
+    if (!validNumber(y)) throw Error(`[POINT INIT ERROR]: Y not an integer: ${y}`);
     this._x = x;
     this._y = y;
   }
@@ -20,7 +20,7 @@ export default class Point {
     return this._x;
   }
   set x(val) {
-    if (!validNumber(val)) throw `Cannot set X to non-integer: ${val}`;
+    if (!validNumber(val)) throw Error(`Cannot set X to non-integer: ${val}`);
     this._x = val;
   }
   /** Structure's y location. @returns {integer} */
@@ -28,7 +28,7 @@ export default class Point {
     return this._y;
   }
   set y(val) {
-    if (!validNumber(val)) throw `Cannot set Y to non-integer: ${val}`;
+    if (!validNumber(val)) throw Error(`Cannot set Y to non-integer: ${val}`);
     this._y = val;
   }
 
@@ -53,7 +53,7 @@ export default class Point {
    * @returns {boolean} true if overlapping segment or its endpoints
    */
   isOnSegment(segment) {
-    if (!(segment instanceof Segment)) throw "Non-Segment object passed"
+    if (!(segment instanceof Segment)) throw Error('Non-Segment object passed')
     if (this.equals(segment.a) || this.equals(segment.b)) return true;
     if (
       this.x > Math.max(segment.a.x, segment.b.x) ||

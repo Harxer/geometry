@@ -26,8 +26,8 @@ export default class Vector {
   constructor(arg1, arg2) {
     // constructor 1: arg1 - {magnitude: {int}, angle: {int}}
     if (typeof arg1 === 'object') {
-      if (!validNumber(arg1.magnitude)) throw `[VECTOR INIT ERROR]: Magnitude not an integer: ${arg1.magnitude}`;
-      if (!Number.isFinite(arg1.angle))     throw `[VECTOR INIT ERROR]: Angle not an integer: ${arg1.angle}`;
+      if (!validNumber(arg1.magnitude)) throw Error(`[VECTOR INIT ERROR]: Magnitude not an integer: ${arg1.magnitude}`);
+      if (!Number.isFinite(arg1.angle))     throw Error(`[VECTOR INIT ERROR]: Angle not an integer: ${arg1.angle}`);
       this._magnitude = arg1.magnitude;
       this._angle = arg1.angle;
       // Maintain positive magnitude
@@ -39,8 +39,8 @@ export default class Vector {
       return;
     }
     // constructor 2: arg1 {int}, arg2 {int}
-    if (!validNumber(arg1)) throw `[VECTOR INIT ERROR]: X component not an integer: ${arg1}`;
-    if (!validNumber(arg2)) throw `[VECTOR INIT ERROR]: Y component not an integer: ${arg2}`;
+    if (!validNumber(arg1)) throw Error(`[VECTOR INIT ERROR]: X component not an integer: ${arg1}`);
+    if (!validNumber(arg2)) throw Error(`[VECTOR INIT ERROR]: Y component not an integer: ${arg2}`);
     this._x = arg1;
     this._y = arg2;
   }
@@ -53,7 +53,7 @@ export default class Vector {
     return this._x;
   }
   set x(val) {
-    if (!validNumber(val)) throw `Cannot set x component to non-integer: ${val}`;
+    if (!validNumber(val)) throw Error(`Cannot set x component to non-integer: ${val}`);
     if (equals(this._x, val)) return;
     this._x = val;
     this.y; // force compute y before clearing magnitude/angle
@@ -68,7 +68,7 @@ export default class Vector {
     return this._y;
   }
   set y(val) {
-    if (!validNumber(val)) throw `Cannot set y component to non-integer: ${val}`;
+    if (!validNumber(val)) throw Error(`Cannot set y component to non-integer: ${val}`);
     if (equals(this._y, val)) return;
     this._y = val;
     this.x; // force compute x before clearing magnitude/angle
@@ -82,7 +82,7 @@ export default class Vector {
     return this._magnitude;
   }
   set magnitude(val) {
-    if (!validNumber(val)) throw `Cannot set magnitude to non-integer: ${val}`;
+    if (!validNumber(val)) throw Error(`Cannot set magnitude to non-integer: ${val}`);
     if (equals(this._magnitude, val)) return;
 
     if (this._magnitude !== undefined) {
@@ -119,7 +119,7 @@ export default class Vector {
   }
   set angle(val) {
     if (this._angle === val) return;
-    if (!Number.isFinite(val)) throw `Cannot set angle to non-integer: ${val}`;
+    if (!Number.isFinite(val)) throw Error(`Cannot set angle to non-integer: ${val}`);
     this._angle = boundAngle(val);
     // force magnitude generation before losing x/y components
     this.magnitude;
@@ -269,7 +269,7 @@ export default class Vector {
    */
   intersectsCircle(origin, radiusSqrd) {
     if (!(origin instanceof Point)) {
-      throw `[ERROR intersectsCircle]: Provided origin is not a valid point: ${origin}`
+      throw Error(`[ERROR intersectsCircle]: Provided origin is not a valid point: ${origin}`)
     }
     let proj = this.projection(origin.vector);
     let perp = origin.copy.minus(proj);
@@ -320,15 +320,13 @@ export default class Vector {
   // --------------------- Deprecated
 
   /** @deprecated */
-  multipliedBy() {throw 'Deprecated';}
+  multipliedBy() {throw Error('Deprecated');}
   /** @deprecated */
-  plus() {throw 'Deprecated';}
+  plus() {throw Error('Deprecated');}
   /** @deprecated */
-  flipped() {throw 'Deprecated';}
+  flipped() {throw Error('Deprecated');}
   /** @deprecated */
-  extendedBy() {throw 'Deprecated';}
+  extendedBy() {throw Error('Deprecated');}
   /** @deprecated */
-  normalized() {
-    throw 'Deprecated';
-  }
+  normalized() { throw Error('Deprecated'); }
 }

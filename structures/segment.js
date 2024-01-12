@@ -26,11 +26,11 @@ export default class Segment {
     if (vertex1 instanceof Point) {
       vertex1 = vertex1.copy;
     } else if (typeof vertex1 === 'object' && vertex1.x !== undefined && vertex1.y !== undefined) {
-      if (!validNumber(vertex1.x)) throw `[SEGMENT INIT ERROR]: Vertex 1 X not an integer: ${vertex1.x}`;
-      if (!validNumber(vertex1.y)) throw `[SEGMENT INIT ERROR]: Vertex 1 Y not an integer: ${vertex1.y}`;
+      if (!validNumber(vertex1.x)) throw Error(`[SEGMENT INIT ERROR]: Vertex 1 X not an integer: ${vertex1.x}`);
+      if (!validNumber(vertex1.y)) throw Error(`[SEGMENT INIT ERROR]: Vertex 1 Y not an integer: ${vertex1.y}`);
       vertex1 = new Point(vertex1.x, vertex1.y);
     } else {
-      throw `[SEGMENT INIT ERROR]: Vertex 1 not viable construction point: ${vertex1}`;
+      throw Error(`[SEGMENT INIT ERROR]: Vertex 1 not viable construction point: ${vertex1}`);
     }
     this._a = vertex1;
     Object.freeze(this._a);
@@ -42,17 +42,17 @@ export default class Segment {
       this._vector = vertex2.copy;
     } else if (typeof vertex2 === 'object') {
       if (vertex2.x !== undefined && vertex2.y !== undefined) {
-        if (!validNumber(vertex2.x)) throw `[SEGMENT INIT ERROR]: Vertex 2 X not an integer: ${vertex2.x}`;
-        if (!validNumber(vertex2.y)) throw `[SEGMENT INIT ERROR]: Vertex 2 Y not an integer: ${vertex2.y}`;
+        if (!validNumber(vertex2.x)) throw Error(`[SEGMENT INIT ERROR]: Vertex 2 X not an integer: ${vertex2.x}`);
+        if (!validNumber(vertex2.y)) throw Error(`[SEGMENT INIT ERROR]: Vertex 2 Y not an integer: ${vertex2.y}`);
         this._b = new Point(vertex2.x, vertex2.y);
         Object.freeze(this._b);
       } else if (vertex2.magnitude !== undefined && vertex2.angle !== undefined) {
         this._vector = new Vector(vertex2);
       } else {
-        throw `[SEGMENT INIT ERROR]: Vertex 2 not viable construction point: ${vertex2}`;
+        throw Error(`[SEGMENT INIT ERROR]: Vertex 2 not viable construction point: ${vertex2}`);
       }
     } else {
-      throw `[SEGMENT INIT ERROR]: Vertex 2 not viable construction point: ${vertex2}`;
+      throw Error(`[SEGMENT INIT ERROR]: Vertex 2 not viable construction point: ${vertex2}`);
     }
 
     // TODO - should throw on segment a === b? disallow zero magnitude?
@@ -65,7 +65,7 @@ export default class Segment {
     return this._a;
   }
   set a(val) {
-    if (!(val instanceof Point)) throw `[ERROR ASSIGN origin]: Non-point vertex: ${val}`;
+    if (!(val instanceof Point)) throw Error(`[ERROR ASSIGN origin]: Non-point vertex: ${val}`);
     this.b; // Force `b` generation if moving `a` as this invalidates `_vector`.
     this._vector = undefined;
     this._a = val;
@@ -81,7 +81,7 @@ export default class Segment {
     return this._b;
   }
   set b(val) {
-    if (!(val instanceof Point)) throw `[ERROR ASSIGN target]: Non-point vertex: ${val}`;
+    if (!(val instanceof Point)) throw Error(`[ERROR ASSIGN target]: Non-point vertex: ${val}`);
     this._b = val;
     this._vector = undefined;
   }
@@ -91,21 +91,21 @@ export default class Segment {
     this._vector ??= this._b.copy.minus(this._a).vector;
     return this._vector;
   }
-  set vector(_) { throw "Cannot set vector of a Segment structure." }
+  set vector(_) { throw Error('Cannot set vector of a Segment structure.') }
 
   /** Length of segment. @returns {int} */
   get magnitude() { return this.vector.magnitude; }
-  set magnitude(_) { throw "Cannot set magnitude of a Segment structure." }
+  set magnitude(_) { throw Error('Cannot set magnitude of a Segment structure.') }
   /** @alias magnitude */
   get distance() { return this.magnitude; }
-  set distance(_) { throw "Cannot set distance of a Segment structure." }
+  set distance(_) { throw Error('Cannot set distance of a Segment structure.') }
   /** @alias magnitude */
   get length() { return this.magnitude; }
-  set length(_) { throw "Cannot set length of a Segment structure." }
+  set length(_) { throw Error('Cannot set length of a Segment structure.') }
 
   /** Get structure angle from A to B. @returns {Int} Radians */
   get angle() { return this.vector.angle; }
-  set angle(_) { throw "Cannot set angle of a Segment structure." }
+  set angle(_) { throw Error('Cannot set angle of a Segment structure.') }
 
   /** Copies segments available properties . @returns {Segment} */
   get copy() {
@@ -121,7 +121,7 @@ export default class Segment {
   get slope() {
     return (this.b.y - this.a.y) / (this.b.x - this.a.x);
   }
-  set slope(_) { throw 'Cannot set slope of a Segment structure.' }
+  set slope(_) { throw Error('Cannot set slope of a Segment structure.') }
 
   // ------------------------ Functions
 

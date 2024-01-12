@@ -11,7 +11,7 @@ import Vector from './structures/vector.js'
 
 export let globalEqualsPrecision = 16;
 export function setGlobalEqualsPrecision(precision) {
-  if (!Number.isFinite(precision)) throw `[GEOMETRY ERROR]: Precision is not an integer: ${precision}`;
+  if (!Number.isFinite(precision)) throw Error(`[GEOMETRY ERROR]: Precision is not an integer: ${precision}`);
   globalEqualsPrecision = precision;
 }
 
