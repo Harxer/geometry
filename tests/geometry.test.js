@@ -8,6 +8,9 @@ describe('equals', function() {
   it('handles large floating points better than equality comparator', function() {
     expect(1.0000002e5 + 0.03 === 1.05e5).toBe(false);
     expect(Geometry.equals(1.0000002e5 + 0.03, 1.0000005e5)).toBe(true);
+
+    expect(1.0000002e5 - 0.03 === 1.05e5).toBe(false);
+    expect(Geometry.equals(1.0000005e5 - 0.03, 1.0000002e5)).toBe(true);
   })
   it('matches equality operator at floating point boundary', function() {
     // Boundary of floating point precision

@@ -10,6 +10,26 @@ import Segment from './structures/segment.js'
 import Vector from './structures/vector.js'
 
 export let globalEqualsPrecision = 16;
+/** Pre-computed precision comparator values. "Math.pow(10, -precision) / 2" */
+const PRECISION_MAP = {
+  0: 0.5,
+  1: 0.05,
+  2: 0.005,
+  3: 0.0005,
+  4: 0.000049999999999999996,
+  5: 0.0000049999999999999996,
+  6: 5e-7,
+  7: 5e-8,
+  8: 5e-9,
+  9: 5e-10,
+  10: 5e-11,
+  11: 5e-12,
+  12: 5e-13,
+  13: 5e-14,
+  14: 5e-15,
+  15: 5e-16,
+  16: 5e-17
+}
 export function setGlobalEqualsPrecision(precision) {
   if (!Number.isFinite(precision)) throw Error(`[GEOMETRY ERROR]: Precision is not an integer: ${precision}`);
   globalEqualsPrecision = precision;
@@ -40,11 +60,11 @@ export function orientation(p1, p2, p3) {
   let dY_p2p3 = (p3.y - p2.y);
 
   // Handle Infinity - allow `0 * Infinity === 0` rather than `=== NaN`
-  if (dY_p1p2 === 0 || dX_p2p3 === 0) { dY_p1p2 = 0; dX_p2p3 = 0; }
-  if (dX_p1p2 === 0 || dY_p2p3 === 0) { dX_p1p2 = 0; dY_p2p3 = 0; } // TODO dY_p2p3 === 4 is a typo?
+  if (equals(dY_p1p2, 0) || equals(dX_p2p3, 0)) { dY_p1p2 = 0; dX_p2p3 = 0; }
+  if (equals(dX_p1p2, 0) || equals(dY_p2p3, 0)) { dX_p1p2 = 0; dY_p2p3 = 0; } // TODO dY_p2p3 === 4 is a typo?
 
   let val = dY_p1p2 * dX_p2p3 - dX_p1p2 * dY_p2p3;
-  if (val == 0) return ORIENTATION.COLLINEAR;
+  if (equals(val, 0)) return ORIENTATION.COLLINEAR;
   return (val > 0) ? ORIENTATION.CCW : ORIENTATION.CW
 }
 
@@ -98,9 +118,11 @@ export function equals(x, y, precision = undefined) {
 
   if (precision === undefined) {
     // Dynamic precision based on magnitude of two numbers being compared up to `globalEqualsPrecision`.
-    precision = globalEqualsPrecision - valueMagnitude(Math.max(x, y));
+    // TODO - Math.max(), if values are significantly different magnitudes, why refine precision?
+    precision = globalEqualsPrecision - valueMagnitude(Math.max(Math.abs(x), Math.abs(y)));
   }
-  return Math.abs(y - x) < Math.pow(10, -precision) / 2;
+  // Less than "Math.pow(10, -) / 2":
+  return Math.abs(y - x) < PRECISION_MAP[Math.max(precision, 0)];
 }
 
 /** The smallest value floating point can handle with one whole number.

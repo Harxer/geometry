@@ -24,28 +24,28 @@ export default class Polygon {
 
     let excessVertices = [];
     // Verify if any vertices overlap/intersect
-    for (let aEdgeI = 0; aEdgeI < this.edges.length - 1; aEdgeI++) {
-      for (let bEdgeI = aEdgeI + 1; bEdgeI < this.edges.length; bEdgeI++) {
+    for (let iEdgeA = 0; iEdgeA < this.edges.length - 1; iEdgeA++) {
+      for (let iEdgeB = iEdgeA + 1; iEdgeB < this.edges.length; iEdgeB++) {
 
-        if (bEdgeI === aEdgeI + 1) {
+        if (iEdgeB === iEdgeA + 1) {
           // Immediate neighbors only get checked for the non-shared endpoint is collinear as `intersects()` would always result in true
-          if (orientation(this.edges[aEdgeI].a, this.edges[aEdgeI].b, this.edges[bEdgeI].b) === ORIENTATION.COLLINEAR) {
-            if (this.edges[aEdgeI].vector.quadrant() === this.edges[bEdgeI].vector.quadrant()) {
+          if (orientation(this.edges[iEdgeA].a, this.edges[iEdgeA].b, this.edges[iEdgeB].b) === ORIENTATION.COLLINEAR) {
+            if (this.edges[iEdgeA].vector.quadrant() === this.edges[iEdgeB].vector.quadrant()) {
               // Repair collinear continued segments, remove excess vertices
-              excessVertices.push(aEdgeI + 1);
+              excessVertices.push(iEdgeA + 1);
             } else {
               // Verify no overlap, no backtracking
-              throw Error(`[POLYGON INIT ERROR] edge neighbors collinear: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`);
+              throw Error(`[POLYGON INIT ERROR] edge neighbors collinear: ${this.edges[iEdgeA].logString()} with ${this.edges[iEdgeB].logString()}`);
             }
           }
           // TODO auto repair endpoint overlap
-        } else if (aEdgeI === 0 && bEdgeI === this.edges.length - 1) {
+        } else if (iEdgeA === 0 && iEdgeB === this.edges.length - 1) {
           // First edge has to ignore endpoint overlap with closing edge
-          if (orientation(this.edges[bEdgeI].a, this.edges[bEdgeI].b, this.edges[aEdgeI].b) == ORIENTATION.COLLINEAR) {
-            throw Error(`[POLYGON INIT ERROR] closing edge collinear: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`);
+          if (orientation(this.edges[iEdgeB].a, this.edges[iEdgeB].b, this.edges[iEdgeA].b) == ORIENTATION.COLLINEAR) {
+            throw Error(`[POLYGON INIT ERROR] closing edge collinear: ${this.edges[iEdgeA].logString()} with ${this.edges[iEdgeB].logString()}`);
           }
-        } else if (this.edges[aEdgeI].intersects(this.edges[bEdgeI])) {
-          throw Error(`[POLYGON INIT ERROR] edges intersect: ${this.edges[aEdgeI].logString()} with ${this.edges[bEdgeI].logString()}`);
+        } else if (this.edges[iEdgeA].intersects(this.edges[iEdgeB])) {
+          throw Error(`[POLYGON INIT ERROR] edges intersect: ${this.edges[iEdgeA].logString()} with ${this.edges[iEdgeB].logString()}`);
         }
       }
     }
@@ -156,9 +156,8 @@ export default class Polygon {
         }
       };
     }
-    if (count % 2 == 0 && this.clockwise) return true
-    if (count % 2 == 1 && this.counterclockwise) return true
-    return false
+    if (count % 2 == 1) return this.counterclockwise;
+    return this.clockwise;
   }
 
   contains(peer) {
@@ -308,7 +307,7 @@ export default class Polygon {
     // TODO - extrude could end up back inside polygon
 
     // On edge
-    if (closest.distSqrd === 0) {
+    if (equals(closest.distSqrd, 0)) {
       let extendVector;
       // On endpoint A, extendBy outer angle of vertex
       if (this.edges[closest.vIndex].a.equals(closest.escapeSegment.b)) {
@@ -357,7 +356,7 @@ export default class Polygon {
    * @returns {Polyon} with extruded vertices from target
    */
   extrudeVertices(extrudeAmount) {
-    if (extrudeAmount === 0) return this.copy;
+    if (equals(extrudeAmount, 0)) return this.copy;
     let extrudedVertices = [];
     for (let v = 0; v < this.vertices.length; v++) {
       let cV = this.vertices[v];

@@ -183,7 +183,7 @@ describe('containsPoint', function() {
     expect(testPolygon.containsPoint(new Point(0.5, 0))).toBe(false);
     expect(testPolygon.containsPoint(new Point(0.5 - minNumber(), 0))).toBe(true);
     expect(testPolygon.containsPoint(new Point(0.5 + minNumber(), 0))).toBe(true);
-    expect(testPolygon.containsPoint(new Point(0.5, 0 + minNumber()))).toBe(false);
+    expect(testPolygon.containsPoint(new Point(0.5, 0 + minNumber(10)))).toBe(false);
     expect(testPolygon.containsPoint(new Point(0.5, 0 - minNumber()))).toBe(true);
   })
 })

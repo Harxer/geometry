@@ -1,6 +1,6 @@
 import Point from './point.js'
 import Vector from './vector.js'
-import { orientation, ORIENTATION, validNumber } from '../geometry.js'
+import { orientation, ORIENTATION, validNumber, equals } from '../geometry.js'
 
 // TODO can be arranged as two points or Point/Vector
 
@@ -176,17 +176,17 @@ export default class Segment {
     let cross = this.vector.crossProduct(segment.vector);
     let crossOrigin = vOrigins.crossProduct(this.vector);
 
-    if (cross == 0 && crossOrigin == 0) {
+    if (equals(cross, 0) && equals(crossOrigin, 0)) {
       return undefined; // collinear segments
     }
-    if (cross == 0 && crossOrigin != 0) {
+    if (equals(cross, 0) && !equals(crossOrigin, 0)) {
       return undefined; // parallel
     }
 
     let t = vOrigins.crossProduct(segment.vector) / cross;
     let u = crossOrigin / cross;
 
-    if (cross != 0 && (0 <= t && t <= 1) && (0 <= u && u <= 1)) {
+    if (!equals(cross, 0) && (equals(t, 0) || equals(1, t) || (0 <= t && t <= 1)) && (equals(u, 0) || equals(u, t) || (0 <= u && u <= 1))) {
       return new Point( // Intersection
         (this.a.x + this.vector.x * t),
         (this.a.y + this.vector.y * t)
