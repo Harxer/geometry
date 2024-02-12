@@ -3,6 +3,9 @@
  */
 import Vector from '../structures/vector';
 import Point from '../structures/point';
+import { equals, setGlobalEqualsPrecision } from '../geometry';
+
+setGlobalEqualsPrecision(16);
 
 describe('constructor', function() {
   it('populates x/y', function() {
@@ -99,6 +102,12 @@ describe('angle', function() {
     expect(testVector.angle).toBe(Math.PI / 2);
     expect(testVector._angle).toBe(Math.PI / 2);
     expect(testVector._magnitude).toBe(undefined);
+
+    expect(equals(new Vector(10, 10).angle, Math.PI * 1 / 4)).toBe(true);
+    expect(equals(new Vector(0, 10).angle, Math.PI / 2)).toBe(true);
+    expect(equals(new Vector(10, -10).angle, Math.PI * 7 / 4)).toBe(true);
+    expect(equals(new Vector(-10, 10).angle, Math.PI * 3 / 4)).toBe(true);
+    expect(equals(new Vector(-10, -10).angle, Math.PI * 5 / 4)).toBe(true);
   })
 
   it('computes angle and magnitude from x/y on set', function() {

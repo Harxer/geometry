@@ -139,7 +139,7 @@ export default class Polygon {
 
   // TODO - simplify alg: https://stackoverflow.com/questions/36399381/whats-the-fastest-way-of-checking-if-a-point-is-inside-a-polygon-in-python
   /** Check if given point is inside polygon - external to polygon if structure is clockwise.
-   * @param {int} p point to check
+   * @param {Point} p point to check
    * @returns {bool} true if point is internal or lies on structure's edge/vertex (for clockwise).
    */
   containsPoint(p) {
@@ -302,7 +302,7 @@ export default class Polygon {
       // minNumber() gives the smallest floating point precision we can add to a Number but this must
       // be offset by the magnitude of the input Point's components, as this cuts into the floating
       // point's decimal precision.
-      extrudeAmount = minNumber(Math.max(point.x, point.y));
+      extrudeAmount = minNumber(Math.max(Math.abs(point.x), Math.abs(point.y)));
     }
     // TODO - extrude could end up back inside polygon
 
@@ -363,18 +363,16 @@ export default class Polygon {
       let nV = this.vertices[(v+1) % this.vertices.length];
       let pV = this.vertices[(v-1) < 0 ? (this.vertices.length+(v-1)) : (v-1)];
       // Vectors from current vertex out to previous and next vertex.
-      let pVec = (new Vector(pV.x - cV.x, cV.y - pV.y)).normalize();
-      let nVec = (new Vector(nV.x - cV.x, cV.y - nV.y)).normalize();
-      let angle = Math.acos(pVec.dotProduct(nVec))
-      let cross = pVec.crossProduct(nVec)
-      if (cross > 0) angle = 2*Math.PI - angle
-      let angleBetween = angle/2 + nVec.angle;
-
-      // Extend a point out from current vertex.
+      let pVec = (new Vector(pV.x - cV.x, pV.y - cV.y)).normalize();
+      let nVec = (new Vector(nV.x - cV.x, nV.y - cV.y)).normalize();
+      let angle = Math.acos(pVec.dotProduct(nVec));
+      let cross = pVec.crossProduct(nVec);
+      if (cross <= 0) angle = 2*Math.PI - angle
+      let angleBetween = pVec.angle + angle / 2;
       extrudedVertices.push(
         new Point(
           cV.x + extrudeAmount * Math.cos(angleBetween),
-          cV.y - extrudeAmount * Math.sin(angleBetween)
+          cV.y + extrudeAmount * Math.sin(angleBetween)
         )
       );
     }

@@ -1,4 +1,4 @@
-import { validNumber, equals, Segment, valueMagnitude, globalEqualsPrecision } from '../geometry.js';
+import { validNumber, equals, Segment, magnitudeOrder, globalEqualsPrecision } from '../geometry.js';
 import Vector from './vector.js';
 
 /** 2D Point structure */
@@ -64,7 +64,7 @@ export default class Point {
     }
     let largestScale = Math.max(segment.a.x, segment.a.y, segment.b.x, segment.b.y, this.x, this.y);
     // TODO replace slope compare with quadrant compare
-    if (equals((new Segment(segment.a, this)).slope, segment.slope, globalEqualsPrecision - valueMagnitude(largestScale))) return true
+    if (equals((new Segment(segment.a, this)).slope, segment.slope, globalEqualsPrecision - magnitudeOrder(largestScale) + 1)) return true
     return false;
   }
 

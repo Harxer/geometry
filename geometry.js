@@ -9,30 +9,40 @@ import Point from './structures/point.js'
 import Segment from './structures/segment.js'
 import Vector from './structures/vector.js'
 
-export let globalEqualsPrecision = 16;
-/** Pre-computed precision comparator values. "Math.pow(10, -precision) / 2" */
-const PRECISION_MAP = {
-  0: 0.5,
-  1: 0.05,
-  2: 0.005,
-  3: 0.0005,
-  4: 0.000049999999999999996,
-  5: 0.0000049999999999999996,
-  6: 5e-7,
-  7: 5e-8,
-  8: 5e-9,
-  9: 5e-10,
-  10: 5e-11,
-  11: 5e-12,
-  12: 5e-13,
-  13: 5e-14,
-  14: 5e-15,
-  15: 5e-16,
-  16: 5e-17
-}
+/** Highest inverse order of magnitude precision for JS numbers. */
+export const MAX_FLOAT_PRECISION = 16;
+
+/**
+ * Equality check inverse order of magnitude for floating points. Override with `setGlobalEqualsPrecision()`.
+ * Default to three orders of magnitude lower than max JS float point precision.
+ */
+export let globalEqualsPrecision = MAX_FLOAT_PRECISION - 3;
+
+/** Override the default 16 decimal places of precision check. */
 export function setGlobalEqualsPrecision(precision) {
   if (!Number.isFinite(precision)) throw Error(`[GEOMETRY ERROR]: Precision is not an integer: ${precision}`);
   globalEqualsPrecision = precision;
+}
+
+/** Pre-computed precision comparator values. "Number.EPSILON * Math.pow(10, 16 - precision)" */
+const PRECISION_MAP = {
+  0: 2.220446049250313,
+  1: 0.2220446049250313,
+  2: 0.02220446049250313,
+  3: 0.002220446049250313,
+  4: 0.0002220446049250313,
+  5: 0.00002220446049250313,
+  6: 0.000002220446049250313,
+  7: 2.220446049250313e-7,
+  8: 2.220446049250313e-8,
+  9: 2.220446049250313e-9,
+  10: 2.220446049250313e-10,
+  11: 2.220446049250313e-11,
+  12: 2.220446049250313e-12,
+  13: 2.220446049250313e-13,
+  14: 2.220446049250313e-14,
+  15: 2.220446049250313e-15,
+  16: 2.220446049250313e-16, // Number.EPSILON
 }
 
 export {
@@ -68,7 +78,12 @@ export function orientation(p1, p2, p3) {
   return (val > 0) ? ORIENTATION.CCW : ORIENTATION.CW
 }
 
-/** Bounds input angle. @param {int} angle radians @returns {int} radians [0, 360). */
+/**
+ * Clamps input angle.
+ * @note The returned value, despite being small, will have the floating point precision of the incoming argument.
+ * @param {int} angle radians
+ * @returns {int} radians [0, 2PI).
+ */
 export function boundAngle(angle) {
   let twoPi = 2 * Math.PI
   if (angle < 0) return twoPi + (angle) % twoPi
@@ -119,7 +134,7 @@ export function equals(x, y, precision = undefined) {
   if (precision === undefined) {
     // Dynamic precision based on magnitude of two numbers being compared up to `globalEqualsPrecision`.
     // TODO - Math.max(), if values are significantly different magnitudes, why refine precision?
-    precision = globalEqualsPrecision - valueMagnitude(Math.max(Math.abs(x), Math.abs(y)));
+    precision = globalEqualsPrecision - magnitudeOrder(Math.max(Math.abs(x), Math.abs(y))) + 1;
   }
   // Less than "Math.pow(10, -) / 2":
   return Math.abs(y - x) < PRECISION_MAP[Math.max(precision, 0)];
@@ -138,18 +153,11 @@ export function equals(x, y, precision = undefined) {
  * this value to `500000` would not lose any digits.
  */
 export function minNumber(scaleReference = 1) {
-  const MIN_WHOLE_NUMBER = 1;
-  let min_floating_number = 1;
-  while (true) {
-    if (MIN_WHOLE_NUMBER + min_floating_number === MIN_WHOLE_NUMBER) {
-      // Multiply by 10 to get the last viable number, as min_floating_number is now the first failure scenario
-      return min_floating_number * 10 * Math.pow(10, valueMagnitude(scaleReference) - 1);
-    }
-    min_floating_number /= 10;
-  }
+  return Number.EPSILON * Math.pow(10, magnitudeOrder(scaleReference) - 1);
 }
 
-export function valueMagnitude(num) {
+/** Precision order of magnitude for given number. @param {int} num to process. @returns {int} */
+export function magnitudeOrder(num) {
   num = Math.abs(num);
   if (num === Infinity) return Infinity;
   if (num < 10) return 1;

@@ -5,7 +5,9 @@ import Polygon from "../structures/polygon";
 import Point from "../structures/point";
 import Vector from "../structures/vector";
 import Segment from "../structures/segment";
-import { equals, minNumber, valueMagnitude } from '../geometry';
+import { equals, minNumber, magnitudeOrder, setGlobalEqualsPrecision, globalEqualsPrecision } from '../geometry';
+
+setGlobalEqualsPrecision(16);
 
 describe('constructor', function() {
   it('throws on intersecting edges', function() {
@@ -146,17 +148,18 @@ describe('containsPoint', function() {
     expect(testPolygon.containsPoint(new Point(0.5, 0))).toBe(true);
     expect(testPolygon.containsPoint(new Point(0.5 + minNumber(), 0))).toBe(false);
     expect(testPolygon.containsPoint(new Point(0.5 - minNumber(), 0))).toBe(false);
-    expect(testPolygon.containsPoint(new Point(0.5, 0 + minNumber()))).toBe(true);
+    expect(testPolygon.containsPoint(new Point(0.5, 0 + minNumber(10)))).toBe(true);
     expect(testPolygon.containsPoint(new Point(0.5, 0 - minNumber()))).toBe(false);
   })
   it('handles corner', function() {
+    let corner2 = new Point(1, 0.5);
     let testPolygon = new Polygon([
       {x: 0, y: 0},
-      {x: 1, y: 0.5},
+      corner2,
       {x: 0, y: 1},
       {x: -1, y: 0.5}
     ]);
-    expect(testPolygon.containsPoint(new Point(0.5, 0.5))).toBe(true);
+    expect(testPolygon.containsPoint(corner2)).toBe(true);
   })
   it('handles Infinity', function() {
     let testPolygon = new Polygon([
@@ -181,10 +184,10 @@ describe('containsPoint', function() {
     ]);
     expect(testPolygon.clockwise).toBe(true);
     expect(testPolygon.containsPoint(new Point(0.5, 0))).toBe(false);
-    expect(testPolygon.containsPoint(new Point(0.5 - minNumber(), 0))).toBe(true);
-    expect(testPolygon.containsPoint(new Point(0.5 + minNumber(), 0))).toBe(true);
-    expect(testPolygon.containsPoint(new Point(0.5, 0 + minNumber(10)))).toBe(false);
-    expect(testPolygon.containsPoint(new Point(0.5, 0 - minNumber()))).toBe(true);
+    expect(testPolygon.containsPoint(new Point(0.5 - minNumber(100), 0))).toBe(true);
+    expect(testPolygon.containsPoint(new Point(0.5 + minNumber(1000), 0))).toBe(true);
+    expect(testPolygon.containsPoint(new Point(0.5, 0 + minNumber(100)))).toBe(false);
+    expect(testPolygon.containsPoint(new Point(0.5, 0 - minNumber(1000)))).toBe(true);
   })
 })
 
@@ -208,7 +211,7 @@ describe('closestPointOutsideFrom', function() {
 
     // Ensure small buffer relative to polygon vertex floating point magnitude
     let escapeBuffer = Segment.distance(borderPoint, escapePoint);
-    expect(equals(escapeBuffer, minNumber(), 15)).toBe(true);
+    expect(equals(escapeBuffer, minNumber())).toBe(true);
   });
 
   it('extrudes for large integer polygons', function() {
@@ -229,7 +232,7 @@ describe('closestPointOutsideFrom', function() {
     expect(testPolygon.containsPoint(borderPoint)).toBe(true);
 
     // precision must be reduced to magnitude 10 (since 16 (max) minus 6 (MAGNITUDE_SHIFT))
-    const precision = 16 - valueMagnitude(MAGNITUDE_SHIFT) - 1; // max precision magnitude minus magnitude shift
+    const precision = 16 - magnitudeOrder(MAGNITUDE_SHIFT) - 1; // max precision magnitude minus magnitude shift
     expect(borderPoint.equals(new Point(0.75, 0.75).add(new Vector(MAGNITUDE_SHIFT, 0)), precision)).toBe(true);
 
     // Ensure small buffer relative to polygon vertex floating point magnitude
@@ -564,6 +567,12 @@ describe('union', function() {
 
 describe('extrudeVertices', function() {
   it('general cases', function() {
+    let holdPreviousGlobalPrecision = globalEqualsPrecision;
+    // Need to reduce precision by a magnitude here since we loose a magnitude when the
+    // angle wraps past 360deg (vertex 3 in polygon below).
+    // This makes inv cos() and inv sin() slightly less precise.
+    setGlobalEqualsPrecision(holdPreviousGlobalPrecision - 1);
+
     let testPolygon = new Polygon([
       new Point(0, 0),
       {x: 1, y: 0},
@@ -577,6 +586,8 @@ describe('extrudeVertices', function() {
       new Point(1,1).add(new Vector({magnitude: extrudeAmount, angle: Math.PI * 1 / 4})),
       new Point(0,1).add(new Vector({magnitude: extrudeAmount, angle: Math.PI * 3 / 4}))
     ]))).toBe(true);
+
+    setGlobalEqualsPrecision(holdPreviousGlobalPrecision); // Revert precision override
   })
   it('handles zero extrusion', function() {
     let testPolygon = new Polygon([

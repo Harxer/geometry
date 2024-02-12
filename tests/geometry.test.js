@@ -4,25 +4,26 @@
 import * as Geometry from '../geometry'
 import Point from '../structures/point'
 
-describe('equals', function() {
-  it('handles large floating points better than equality comparator', function() {
-    expect(1.0000002e5 + 0.03 === 1.05e5).toBe(false);
-    expect(Geometry.equals(1.0000002e5 + 0.03, 1.0000005e5)).toBe(true);
+Geometry.setGlobalEqualsPrecision(16);
 
-    expect(1.0000002e5 - 0.03 === 1.05e5).toBe(false);
-    expect(Geometry.equals(1.0000005e5 - 0.03, 1.0000002e5)).toBe(true);
+describe('equals', function() {
+  it('overcomes equality comparator', function() {
+    expect(0.1 + 0.2 === 0.3).toBe(false);
+    expect(Geometry.equals(0.1 + 0.2, 0.3)).toBe(true);
+    expect(0.4 + 0.2 === 0.6).toBe(false);
+    expect(Geometry.equals(0.4 + 0.2, 0.6)).toBe(true);
+    expect(0.1 - 0.3 === -0.2).toBe(false);
+    expect(Geometry.equals(0.1 - 0.3, -0.2)).toBe(true);
   })
-  it('matches equality operator at floating point boundary', function() {
-    // Boundary of floating point precision
-    let min = Geometry.minNumber() / 10;
+  it('matches equality operator at floating point precision boundary', function() {
     // (1e-16)
-    expect(1 + min).toBe(1);
-    expect(Geometry.equals(1 + min, 1)).toBe(true);
+    expect(10 + Geometry.minNumber()).toBe(10);
+    expect(Geometry.equals(10 + Geometry.minNumber(), 10)).toBe(true);
     // (1e-15)
-    expect(1 + min * 10).not.toBe(1);
-    expect(Geometry.equals(1 + min * 10, 1, 16)).not.toBe(true);
+    expect(10 + Geometry.minNumber(10)).not.toBe(10);
+    expect(Geometry.equals(1 + Geometry.minNumber(10), 1, 16)).not.toBe(true);
     // Reduced precision
-    expect(Geometry.equals(1 + min * 10, 1, 14)).toBe(true);
+    expect(Geometry.equals(1 + Geometry.minNumber(10), 1, 14)).toBe(true);
   })
   it('handles Infinity', function() {
     expect(Geometry.equals(Infinity, 100)).toBe(false);
@@ -102,32 +103,42 @@ describe('orientation', function() {
   })
 })
 
-describe('valueMagnitude', function() {
+describe('boundAngle', function() {
+  it('handles general cases', function() {
+    expect(Geometry.equals(Geometry.boundAngle(Math.PI * 1 / 4), Math.PI * 1 / 4)).toBe(true);
+    // boundAngle will lose precision as its taking a higher magnitude value and clamping it to a lower magnitude value.
+    expect(Geometry.equals(Geometry.boundAngle(Math.PI * 1 / 4 + 8 * Math.PI), Math.PI * 1 / 4, 15)).toBe(true);
+    expect(Geometry.equals(Geometry.boundAngle(Math.PI * 1 / 4 - 8 * Math.PI), Math.PI * 1 / 4, 15)).toBe(true);
+    expect(Geometry.equals(Geometry.boundAngle(- Math.PI * 1 / 4), Math.PI * 7 / 4)).toBe(true);
+  });
+})
+
+describe('magnitudeOrder', function() {
   it('handles standard formats', function() {
-    expect(Geometry.valueMagnitude(0)).toBe(1);
-    expect(Geometry.valueMagnitude(5)).toBe(1);
-    expect(Geometry.valueMagnitude(5.12515135)).toBe(1);
-    expect(Geometry.valueMagnitude(123456789)).toBe(9);
-    expect(Geometry.valueMagnitude(123456789.1234)).toBe(9);
+    expect(Geometry.magnitudeOrder(0)).toBe(1);
+    expect(Geometry.magnitudeOrder(5)).toBe(1);
+    expect(Geometry.magnitudeOrder(5.12515135)).toBe(1);
+    expect(Geometry.magnitudeOrder(123456789)).toBe(9);
+    expect(Geometry.magnitudeOrder(123456789.1234)).toBe(9);
   });
   it('handles non-standard formats', function() {
-    expect(Geometry.valueMagnitude(1e10)).toBe(11);
-    expect(Geometry.valueMagnitude(1e-16)).toBe(1);
-    expect(Geometry.valueMagnitude(Infinity)).toBe(Infinity);
+    expect(Geometry.magnitudeOrder(1e10)).toBe(11);
+    expect(Geometry.magnitudeOrder(1e-16)).toBe(1);
+    expect(Geometry.magnitudeOrder(Infinity)).toBe(Infinity);
   });
 })
 
 // describe('minNumber', function() {
 //   it('handles standard formats', function() {
-//     expect(Geometry.valueMagnitude(0)).toBe(1);
-//     expect(Geometry.valueMagnitude(5)).toBe(1);
-//     expect(Geometry.valueMagnitude(5.12515135)).toBe(1);
-//     expect(Geometry.valueMagnitude(123456789)).toBe(9);
-//     expect(Geometry.valueMagnitude(123456789.1234)).toBe(9);
+//     expect(Geometry.magnitudeOrder(0)).toBe(1);
+//     expect(Geometry.magnitudeOrder(5)).toBe(1);
+//     expect(Geometry.magnitudeOrder(5.12515135)).toBe(1);
+//     expect(Geometry.magnitudeOrder(123456789)).toBe(9);
+//     expect(Geometry.magnitudeOrder(123456789.1234)).toBe(9);
 //   });
 //   it('handles non-standard formats', function() {
-//     expect(Geometry.valueMagnitude(1e10)).toBe(11);
-//     expect(Geometry.valueMagnitude(1e-16)).toBe(1);
-//     expect(Geometry.valueMagnitude(Infinity)).toBe(Infinity);
+//     expect(Geometry.magnitudeOrder(1e10)).toBe(11);
+//     expect(Geometry.magnitudeOrder(1e-16)).toBe(1);
+//     expect(Geometry.magnitudeOrder(Infinity)).toBe(Infinity);
 //   });
 // })

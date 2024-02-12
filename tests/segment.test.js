@@ -4,6 +4,9 @@
 import Segment from "../structures/segment";
 import Point from "../structures/point";
 import Vector from "../structures/vector";
+import { setGlobalEqualsPrecision } from "../geometry";
+
+setGlobalEqualsPrecision(16);
 
 describe('constructor', function() {
   it('has accepted arguments', function() {
@@ -93,7 +96,7 @@ describe('intersects', function() {
   // it('returns true for endpoints starting on peer segment', function() {
 
   // })
-  it('handles colinear', function() {
+  it('handles colinear overlapping', function() {
     expect(testSegmentA.intersects(new Segment(endpointB.copy.add({x: 1, y: 1}), endpointB.copy.add({x: 2, y: 2})))).toBe(false);
     // TODO - fails:
     // expect(testSegmentA.intersects(new Segment({x: -Infinity, y: -Infinity}, {x: Infinity, y: Infinity}))).toBe(true);
@@ -101,6 +104,30 @@ describe('intersects', function() {
   it('handles Infinity', function() {
     expect(testSegmentA.intersects(new Segment({x: 0, y: Infinity}, {x: 0, y: -Infinity}))).toBe(true);
     expect(testSegmentA.intersects(new Segment({x: Infinity, y: 0}, {x: -Infinity, y: 0}))).toBe(true);
+  })
+  it ('handles colinear non-overlapping', function () {
+    expect((new Segment(new Point(1, 0), new Point(2, 0))).intersects(new Segment(new Point(4, 0), new Point (3, 0)))).toBe(false);
+    expect((new Segment(new Point(0, 1), new Point(0, 2))).intersects(new Segment(new Point(0, 4), new Point (0, 3)))).toBe(false);
+    // expect(
+    //   (new Segment(
+    //     new Point(813.4421150804915, 503.8074963167214),
+    //     new Point(816, 400))
+    //   ).intersects(new Segment(
+    //     new Point(815.2293942403178, 431.27375041377024),
+    //     new Point(Infinity, 431.27375041377024))
+    //   )
+    // ).toBe(true);
+    // [POLYGON INIT ERROR] edges intersect: (815.2293942403178, 431.27375041377024) -> (816, 400) with (792, 1374) -> (813.4421150804915, 503.8074963167214)
+    setGlobalEqualsPrecision(12);
+    expect(
+      (new Segment(
+        new Point(815.2293942403178, 431.27375041377024),
+        new Point(816, 400))
+      ).intersects(new Segment(
+        new Point(792, 1374),
+        new Point(813.4421150804915, 503.8074963167214))
+      )
+    ).toBe(true)
   })
 })
 

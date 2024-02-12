@@ -4,7 +4,9 @@
 import Point from "../structures/point";
 import Segment from '../structures/segment';
 import Vector from '../structures/vector';
-import { minNumber } from "../geometry";
+import { minNumber, setGlobalEqualsPrecision } from "../geometry";
+
+setGlobalEqualsPrecision(16);
 
 describe('isOnSegment', function() {
   let testPointA = new Point(1, 1);
@@ -22,12 +24,12 @@ describe('isOnSegment', function() {
   it('returns true for points on endpoint', function() {
     expect(testEndpointB.isOnSegment(testSegment)).toBe(true);
   })
-  it('returns false for point slighty off endpoint', function() {
-    expect(testEndpointB.copy.add(new Vector(0, minNumber())).isOnSegment(testSegment)).toBe(false);
+  it('returns false for point slightly off endpoint', function() {
+    expect(testEndpointB.copy.add(new Vector(0, minNumber(10))).isOnSegment(testSegment)).toBe(false);
     // Precision boundary
-    expect(testEndpointB.copy.add(new Vector(0, minNumber() / 10)).isOnSegment(testSegment)).toBe(true);
+    expect(testEndpointB.copy.add(new Vector(0, minNumber())).isOnSegment(testSegment)).toBe(true);
   })
-  it('returns true for point slighty on segment', function() {
+  it('returns true for point slightly on segment', function() {
     expect(testEndpointB.copy.add(new Vector(-0.0000000001, -0.0000000001)).isOnSegment(testSegment)).toBe(true);
   })
 })
