@@ -127,6 +127,11 @@ export default class Vector {
     this._y = undefined;
   }
 
+  /** Creates a Point structure out of vector components. @returns {Point} */
+  get point() {
+    return new Point(this.x, this.y);
+  }
+
   /** Copies the target of all set properties */
   get copy() {
     if (this._arrangedAs(COMPONENTS)) {
@@ -268,11 +273,11 @@ export default class Vector {
    * @returns {bool} true if structure intersects circle
    */
   intersectsCircle(origin, radiusSqrd) {
-    if (!(origin instanceof Point)) {
+    if (!Point.typeOf(origin)) {
       throw Error(`[ERROR intersectsCircle]: Provided origin is not a valid point: ${origin}`)
     }
-    let proj = this.projection(origin.vector);
-    let perp = origin.copy.minus(proj);
+    let proj = this.projection(new Vector(origin.x, origin.y));
+    let perp = new Point(origin.x, origin.y).minus(proj);
     let dotProd = proj.dotProduct(this);
 
     if (dotProd < 0) return false;
@@ -301,8 +306,9 @@ export default class Vector {
 
   // --------------------- Static methods
 
+  /** Create vector from two points. */
   static fromSegment(a, b) {
-    return b.copy.minus(a);
+    return new Vector(b.x - a.x, b.y - a.y);
   }
 
   // --------------------- Internal methods

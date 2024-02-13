@@ -23,9 +23,7 @@ export default class Segment {
    * @param {Point | {x: int, y: int} | Vector | {magnitude: int, angle: int}} vertex2
    */
   constructor(vertex1, vertex2) {
-    if (vertex1 instanceof Point) {
-      vertex1 = vertex1.copy;
-    } else if (typeof vertex1 === 'object' && vertex1.x !== undefined && vertex1.y !== undefined) {
+    if (Point.typeOf(vertex1)) {
       if (!validNumber(vertex1.x)) throw Error(`[SEGMENT INIT ERROR]: Vertex 1 X not an integer: ${vertex1.x}`);
       if (!validNumber(vertex1.y)) throw Error(`[SEGMENT INIT ERROR]: Vertex 1 Y not an integer: ${vertex1.y}`);
       vertex1 = new Point(vertex1.x, vertex1.y);
@@ -35,6 +33,7 @@ export default class Segment {
     this._a = vertex1;
     Object.freeze(this._a);
 
+    // TODO remove usage of instanceof
     if (vertex2 instanceof Point) {
       this._b = vertex2.copy;
       Object.freeze(this._b);
@@ -65,10 +64,10 @@ export default class Segment {
     return this._a;
   }
   set a(val) {
-    if (!(val instanceof Point)) throw Error(`[ERROR ASSIGN origin]: Non-point vertex: ${val}`);
+    if (!Point.typeOf(val)) throw Error(`[ERROR ASSIGN origin]: Non-point vertex: ${val}`);
     this.b; // Force `b` generation if moving `a` as this invalidates `_vector`.
     this._vector = undefined;
-    this._a = val;
+    this._a = new Point(val.x, val.y);
   }
 
   /** @alias a */
@@ -81,7 +80,7 @@ export default class Segment {
     return this._b;
   }
   set b(val) {
-    if (!(val instanceof Point)) throw Error(`[ERROR ASSIGN target]: Non-point vertex: ${val}`);
+    if (!Point.typeOf(val)) throw Error(`[ERROR ASSIGN target]: Non-point vertex: ${val}`);
     this._b = val;
     this._vector = undefined;
   }
@@ -248,6 +247,18 @@ export default class Segment {
   /** Retrieves length between points. @param {Point} a @param {Point} b @returns {int} Length */
   static distance(a, b) {
     return new Segment(a, b).distance;
+  }
+
+  /**
+   * Determine if given object behaves like a segment.
+   * @param {*} testStructure
+   * @returns {boolean} true if testStructure has an `a` and `b` with `x` and `y`.
+   */
+  static typeOf(testStructure) {
+    return testStructure?.a?.x !== undefined
+      && testStructure?.a?.y != undefined
+      && testStructure?.b?.x != undefined
+      && testStructure?.b?.y != undefined;
   }
 
   // --------------------- Internal methods

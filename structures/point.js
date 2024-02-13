@@ -53,7 +53,7 @@ export default class Point {
    * @returns {boolean} true if overlapping segment or its endpoints
    */
   isOnSegment(segment) {
-    if (!(segment instanceof Segment)) throw Error('Non-Segment object passed')
+    if (!Segment.typeOf(segment)) throw Error('Non-Segment object passed')
     if (this.equals(segment.a) || this.equals(segment.b)) return true;
     if (
       this.x > Math.max(segment.a.x, segment.b.x) ||
@@ -90,5 +90,14 @@ export default class Point {
     this._x -= vector.x;
     this._y -= vector.y;
     return this;
+  }
+
+  /**
+   * Determine if given object behaves like a point.
+   * @param {*} testStructure
+   * @returns {boolean} true if testStructure has an `x` and `y`.
+   */
+  static typeOf(testStructure) {
+    return testStructure?.x !== undefined && testStructure?.y != undefined;
   }
 }

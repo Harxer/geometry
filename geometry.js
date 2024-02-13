@@ -53,9 +53,9 @@ export {
 }
 
 export const ORIENTATION = {
+  CCW: -1,
   COLLINEAR: 0,
-  CW: 1,
-  CCW: 2
+  CW: 1
 }
 
 /**
