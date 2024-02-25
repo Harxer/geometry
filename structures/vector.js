@@ -21,8 +21,6 @@ export default class Vector {
    * @param {int | {magnitude: int, angle: int}} arg1 X value or object of magnitude/angle.
    * @param {int?} arg2 Y value if arg1 is not an object with magnitude/angle.
    *
-   * @throws if X/Y components are both zero.
-   *
    * @examples
    * - `new Vector(2, 4)`
    * - `new Vector({magnitude: 5, angle: PI})`
@@ -31,7 +29,7 @@ export default class Vector {
     // constructor 1: arg1 - {magnitude: {int}, angle: {int}}
     if (typeof arg1 === 'object') {
       if (!validNumber(arg1.magnitude)) throw Error(`[VECTOR INIT ERROR]: Magnitude not an integer: ${arg1.magnitude}`);
-      if (!Number.isFinite(arg1.angle))     throw Error(`[VECTOR INIT ERROR]: Angle not an integer: ${arg1.angle}`);
+      if (!Number.isFinite(arg1.angle)) throw Error(`[VECTOR INIT ERROR]: Angle not an integer: ${arg1.angle}`);
       this._magnitude = arg1.magnitude;
       this._angle = arg1.angle;
       // Maintain positive magnitude
@@ -45,7 +43,6 @@ export default class Vector {
     // constructor 2: arg1 {int}, arg2 {int}
     if (!validNumber(arg1)) throw Error(`[VECTOR INIT ERROR]: X component not an integer: ${arg1}`);
     if (!validNumber(arg2)) throw Error(`[VECTOR INIT ERROR]: Y component not an integer: ${arg2}`);
-    if (arg1 === 0 && arg2 === 0) throw Error('Null component vector is not allowed. Use mag-angle arrangement.')
     this._x = arg1;
     this._y = arg2;
   }
@@ -157,7 +154,7 @@ export default class Vector {
     this._magnitude = Math.abs(val);
   }
 
-  /** Angle of structure, assuming origin (0,0) in radians. @returns {integer} radians */
+  /** Angle of structure, assuming origin (0,0) in radians. @throws X/Y are zero. @returns {integer} radians */
   get angle() {
     if (this._angle === undefined) {
       // Zero-length structure gives 0 angle.

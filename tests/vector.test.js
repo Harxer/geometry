@@ -23,10 +23,6 @@ describe('constructor', function() {
     expect(_ => new Vector(1, badY)).toThrow(`[VECTOR INIT ERROR]: Y component not an integer: ${badY}`);
   })
 
-  it('throws on zero components', function() {
-    expect(_ => new Vector(0, 0)).toThrow('Null component vector is not allowed. Use mag-angle arrangement.');
-  })
-
   it('populates magnitude/angle', function() {
     let magnitude = Math.random() * 100, angle = Math.random() * Math.PI * 2;
     let testVector = new Vector({magnitude, angle});
@@ -152,8 +148,7 @@ describe('angle', function() {
   })
 
   it('get throws for zero vector', function() {
-    let testVector = new Vector(5, 0);
-    testVector._x = 0;
+    let testVector = new Vector(0, 0);
     expect(_ => testVector.angle).toThrow('Cannot get angle of zero vector.');
   })
   //todo throws

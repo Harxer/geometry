@@ -23,12 +23,14 @@ Why not allow a Segment to accept Vectors as construction vertices?
 the x/y components would need to be extracted. Either input Vectors could be
 magnitude/angle arranged which would incur additional unbeknownst computation.
 
-<b>TENANT-1: All structures use the same getters. i.e. vector.x, segment.b.x, point.x </b>
-<b>TENANT-2: Construction shall not have a computation cost.</b>
-<b>TENANT-3: Logical grammar required. i.e. Two Point structures cannot be added together. </b>
-<b>TENANT-4: Counter-clockwise is positive. Clockwise is negative. </b>
-<b>TENANT-5: All angles are bounded to [0, 360) </b>
-<b>TENANT-5: Magnitude/length/distance is always positive. </b>
+- <b>TENANT.1:</b> All structures use the same getters. i.e. vector.x, segment.b.x, point.x
+- <b>TENANT.2:</b> Construction shall not have a computation cost.
+- <b>TENANT.3:</b> Logical grammar required. i.e. Two Point structures cannot be added together.
+- <b>TENANT.4:</b> Counter-clockwise is positive. Clockwise is negative.
+- <b>TENANT.5:</b> All angles are bounded to [0, 360).
+- <b>TENANT.6:</b> Magnitude/length/distance is always positive.
+- <b>TENANT.7:</b> Not strongly typed. Type checking is avoided (i.e `{x: 5, y: 5}` is a valid replacement for `new Point(5, 5)`).
+- <b>TENANT.8:</b> Grammatical errors are postponed. A null vector can be created. Retrieving it's angle throws an error.
 
 You can't add Points together.
 You can add a vector to a point.
