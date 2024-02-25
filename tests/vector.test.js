@@ -17,10 +17,14 @@ describe('constructor', function() {
     expect(testVector._angle).toBe(undefined);
   })
 
-  it('throws on bad x/y', function() {
+  it('throws on invalid args', function() {
     let badX = 0 / 0, badY = {magnitude: 5, angle: 5};
     expect(_ => new Vector(badX, 1)).toThrow(`[VECTOR INIT ERROR]: X component not an integer: ${badX}`);
     expect(_ => new Vector(1, badY)).toThrow(`[VECTOR INIT ERROR]: Y component not an integer: ${badY}`);
+  })
+
+  it('throws on zero components', function() {
+    expect(_ => new Vector(0, 0)).toThrow('Null component vector is not allowed. Use mag-angle arrangement.');
   })
 
   it('populates magnitude/angle', function() {
@@ -68,6 +72,19 @@ describe('x', function() {
     expect(testVector.x).toBe(11);
     expect(testVector._y).toBeCloseTo(0);
   })
+
+  it('set preserves angle on zeroing x when y is zero', function() {
+    let testVector = new Vector(5, 0);
+    expect(testVector.magnitude).toBe(5);
+    testVector.x = 0;
+    expect(testVector.angle).toBe(0);
+    expect(testVector.x).toBe(0);
+    expect(testVector.y).toBe(0);
+    expect(testVector.magnitude).toBe(0);
+    testVector.magnitude = 5;
+    expect(testVector.x).toBe(5);
+    expect(testVector.y).toBe(0);
+  })
   //todo throws
 })
 
@@ -91,11 +108,24 @@ describe('y', function() {
     expect(testVector.y).toBe(11);
     expect(testVector._x).toBeCloseTo(0);
   })
+
+  it('set preserves angle on zeroing y when x is zero', function() {
+    let testVector = new Vector(0, 5);
+    expect(testVector.magnitude).toBe(5);
+    testVector.y = 0;
+    expect(testVector.angle).toBe(Math.PI / 2);
+    expect(testVector.x).toBe(0);
+    expect(testVector.y).toBe(0);
+    expect(testVector.magnitude).toBe(0);
+    testVector.magnitude = 5;
+    expect(equals(testVector.x, 0, 14)).toBe(true);
+    expect(testVector.y).toBe(5);
+  })
   //todo throws
 })
 
 describe('angle', function() {
-  it('computes angle from x/y on get', function() {
+  it('get computes angle from x/y', function() {
     let x = 0, y = 5;
     let testVector = new Vector(x, y);
     expect(testVector._angle).toBe(undefined);
@@ -110,7 +140,7 @@ describe('angle', function() {
     expect(equals(new Vector(-10, -10).angle, Math.PI * 5 / 4)).toBe(true);
   })
 
-  it('computes angle and magnitude from x/y on set', function() {
+  it('set computes angle and magnitude from x/y', function() {
     let x = 0, y = 5;
     let testVector = new Vector(x, y);
     testVector.angle = 0;
@@ -119,6 +149,12 @@ describe('angle', function() {
     expect(testVector._magnitude).toBeCloseTo(5);
     expect(testVector._x).toBe(undefined);
     expect(testVector._y).toBe(undefined);
+  })
+
+  it('get throws for zero vector', function() {
+    let testVector = new Vector(5, 0);
+    testVector._x = 0;
+    expect(_ => testVector.angle).toThrow('Cannot get angle of zero vector.');
   })
   //todo throws
 })
@@ -144,6 +180,17 @@ describe('magnitude', function() {
     expect(testVector._y).toBe(undefined);
   })
 
+  it('set clears components on zero magnitude', function() {
+    let testVector = new Vector(5, 5);
+    expect(testVector.magnitude).toBe(Math.sqrt(25 + 25));
+    testVector.magnitude = 0;
+    testVector.angle = Math.PI / 4;
+    expect(testVector._x).toBe(undefined);
+    expect(testVector.x).toBe(0);
+    expect(testVector._y).toBe(undefined);
+    expect(testVector.y).toBe(0);
+  })
+
   it('forces positive magnitude and flipped angle from x/y on set', function() {
     let x = 5, y = 0;
     let testVector = new Vector(x, y);
@@ -158,17 +205,21 @@ describe('magnitude', function() {
 })
 
 describe('multiplyBy', function() {
-  let testVector = new Vector(5, 0);
-  expect(testVector.angle).toBeCloseTo(0);
-  expect(testVector.multiplyBy(2).magnitude).toBe(10);
-  expect(testVector.angle).toBeCloseTo(0);
+  it('handles general', function() {
+    let testVector = new Vector(5, 0);
+    expect(testVector.angle).toBeCloseTo(0);
+    expect(testVector.multiplyBy(2).magnitude).toBe(10);
+    expect(testVector.angle).toBeCloseTo(0);
+  })
 })
 
 describe('extendBy', function() {
-  let testVector = new Vector(5, 0);
-  expect(testVector.angle).toBeCloseTo(0);
-  expect(testVector.extendBy(1).magnitude).toBe(6);
-  expect(testVector.angle).toBeCloseTo(0);
+  it('handles general', function() {
+    let testVector = new Vector(5, 0);
+    expect(testVector.angle).toBeCloseTo(0);
+    expect(testVector.extendBy(1).magnitude).toBe(6);
+    expect(testVector.angle).toBeCloseTo(0);
+  });
 })
 
 describe('add', function() {
@@ -296,12 +347,12 @@ describe('equals', function() {
 describe('intersectsCircle', function() {
   it('handles intersection', function() {
     let testVectorA = new Vector(1, 1);
-    expect(testVectorA.intersectsCircle(new Point(2, 2), 1.5 * 1.5)).toBe(true);
-    expect(testVectorA.intersectsCircle(new Point(1, 1), 0.5 * 0.5)).toBe(true);
+    expect(testVectorA.intersectsCircle(new Point(2, 2), 1.5)).toBe(true);
+    expect(testVectorA.intersectsCircle(new Point(1, 1), 0.5)).toBe(true);
   })
   it('handles miss', function() {
     let testVectorA = new Vector(2, 2);
-    expect(testVectorA.intersectsCircle(new Point(3, 3), 0.5 * 0.5)).toBe(false);
+    expect(testVectorA.intersectsCircle(new Point(3, 3), 0.5)).toBe(false);
     expect(testVectorA.intersectsCircle(new Point(-2, -2), 1)).toBe(false);
   })
 })

@@ -229,6 +229,7 @@ export default class Segment {
 
   /** Compute point on Segment closest to given point. @param {Point} point @returns {Point} */
   closestPointOnSegmentTo(point) {
+    if (point.equals(this._a)) return point.copy;
     let aToPoint = new Segment(this._a, point);
     let proj = aToPoint.vector.projection(this.vector);
     // Check if closer to segments endpoints

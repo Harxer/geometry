@@ -11,13 +11,17 @@ const COMPONENTS = "components" // x, y
 // TODO - How to handle angle of zero-length vector?
 
 /**
- * Structure representing a point in space. Can be in the form of an x/y component or
- * a magnitude/angle assuming the origin is (0,0).
+ * Structure representing a direction in space. Can be in the form of an x/y component or
+ * a magnitude/angle assuming the origin is (0,0). Magnitude is always positive.
+ * Zero component vectors are not allowed unless a vector is zeroed after being able
+ * to preserve its angle.
  */
 export default class Vector {
   /**
    * @param {int | {magnitude: int, angle: int}} arg1 X value or object of magnitude/angle.
    * @param {int?} arg2 Y value if arg1 is not an object with magnitude/angle.
+   *
+   * @throws if X/Y components are both zero.
    *
    * @examples
    * - `new Vector(2, 4)`
@@ -41,6 +45,7 @@ export default class Vector {
     // constructor 2: arg1 {int}, arg2 {int}
     if (!validNumber(arg1)) throw Error(`[VECTOR INIT ERROR]: X component not an integer: ${arg1}`);
     if (!validNumber(arg2)) throw Error(`[VECTOR INIT ERROR]: Y component not an integer: ${arg2}`);
+    if (arg1 === 0 && arg2 === 0) throw Error('Null component vector is not allowed. Use mag-angle arrangement.')
     this._x = arg1;
     this._y = arg2;
   }
@@ -49,31 +54,63 @@ export default class Vector {
 
   /** Structure's x component. @returns {integer} */
   get x() {
-    if (this._x === undefined) this._x = this.magnitude * Math.cos(this.angle);
+    if (this._x === undefined)  {
+      if (this._magnitude === 0) {
+        // Zero vectors do not memoize components to zero
+        return 0;
+      } else {
+        this._x = this.magnitude * Math.cos(this.angle)
+      }
+    };
     return this._x;
   }
   set x(val) {
     if (!validNumber(val)) throw Error(`Cannot set x component to non-integer: ${val}`);
     if (equals(this._x, val)) return;
-    this._x = val;
-    this.y; // force compute y before clearing magnitude/angle
-    this._magnitude = undefined;
-    this._angle = undefined;
+    if (val === 0 && this._y === 0) {
+      // Save angle before zeroing components
+      this.angle;
+      this._magnitude = 0;
+      this._x = undefined;
+      this._y = undefined;
+    } else {
+      // Force compute y before clearing magnitude/angle
+      this.y;
+      this._angle = undefined;
+      this._x = val;
+      this._magnitude = undefined;
+    }
   }
 
   /** Structure's y component. @returns {integer} */
   get y() {
     // Defer extract y component if structure only has a magnitude and angle
-    if (this._y === undefined) this._y = this.magnitude * Math.sin(this.angle);
+    if (this._y === undefined) {
+      if (this._magnitude === 0) {
+        // zero vectors do not memoize components to zero
+        return 0;
+      } else {
+        this._y = this.magnitude * Math.sin(this.angle)
+      }
+    }
     return this._y;
   }
   set y(val) {
     if (!validNumber(val)) throw Error(`Cannot set y component to non-integer: ${val}`);
     if (equals(this._y, val)) return;
-    this._y = val;
-    this.x; // force compute x before clearing magnitude/angle
-    this._magnitude = undefined;
-    this._angle = undefined;
+    if (val === 0 && this._x === 0) {
+      // Save angle before zeroing components
+      this.angle;
+      this._magnitude = 0;
+      this._x = undefined;
+      this._y = undefined;
+    } else {
+      // Force compute x before clearing magnitude/angle
+      this.x;
+      this._angle = undefined;
+      this._y = val;
+      this._magnitude = undefined;
+    }
   }
 
   /** Length of structure, assuming origin (0,0). @returns {integer} */
@@ -81,6 +118,11 @@ export default class Vector {
     if (this._magnitude === undefined) this._magnitude = Math.sqrt(Math.pow(this._x, 2) + Math.pow(this._y, 2));
     return this._magnitude;
   }
+  /**
+   * Update length of vector. Assigning a negative magnitude will flip the angle and
+   * enforce a positive magnitude. Setting zero magnitude maintains last computable angle
+   * and zeroes components.
+   */
   set magnitude(val) {
     if (!validNumber(val)) throw Error(`Cannot set magnitude to non-integer: ${val}`);
     if (equals(this._magnitude, val)) return;
@@ -88,9 +130,16 @@ export default class Vector {
     if (this._magnitude !== undefined) {
       // If previous magnitude saved with components, rescale x/y components
       if (this._arrangedAs(COMPONENTS)) {
-        let magnitudeScaling = val / this._magnitude;
-        this._x *= magnitudeScaling;
-        this._y *= magnitudeScaling;
+        // Preserve angle if zeroing magnitude
+        if (val === 0) {
+          this.angle;
+          this._x = undefined;
+          this._y = undefined;
+        } else {
+          let magnitudeScaling = val / this._magnitude;
+          this._x *= magnitudeScaling;
+          this._y *= magnitudeScaling;
+        }
       } else {
         // defer x/y component generation
         this._x = undefined;
@@ -112,7 +161,7 @@ export default class Vector {
   get angle() {
     if (this._angle === undefined) {
       // Zero-length structure gives 0 angle.
-      if (equals(this._x, 0) && equals(this._y, 0)) return 0;
+      if (equals(this._x, 0) && equals(this._y, 0)) throw Error('Cannot get angle of zero vector.');
       this._angle = boundAngle(Math.atan2(this.y, this.x));
     }
     return this._angle;
@@ -268,22 +317,24 @@ export default class Vector {
   }
 
   /** Tests structure for bisection of circle by origin and radiusSqrd.
-   * @param {Point} origin
-   * @param {int} radiusSqrd radius * radius
+   * @param {Point} origin of circle
+   * @param {int} radius of circle
    * @returns {bool} true if structure intersects circle
    */
-  intersectsCircle(origin, radiusSqrd) {
+  intersectsCircle(origin, radius) {
     if (!Point.typeOf(origin)) {
       throw Error(`[ERROR intersectsCircle]: Provided origin is not a valid point: ${origin}`)
     }
+    if (origin.x === 0 && origin.y === 0) return true;
     let proj = this.projection(new Vector(origin.x, origin.y));
     let perp = new Point(origin.x, origin.y).minus(proj);
+    if (perp.x === 0 && perp.y === 0) return true;
     let dotProd = proj.dotProduct(this);
 
     if (dotProd < 0) return false;
     if (dotProd > this.magnitudeSqrd()) return false;
 
-    return (perp.vector.magnitudeSqrd() < radiusSqrd);
+    return (perp.vector.magnitudeSqrd() < radius * radius);
   }
 
   /** Returns right square angle Vector of this structure. @returns {Vector} */

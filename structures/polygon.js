@@ -232,7 +232,7 @@ export default class Polygon {
     do {
       let edge = new Segment(builder.lastVertex, tracer.vertexNext);
       // Overlapping vertices can cause intersection point to be on top of the next vertex
-      if (equals(edge.distanceSqrd(), 0)) {
+      if (builder.lastVertex.equals(tracer.vertexNext)) {
         tracer.iVertex = tracer.iVertexNext;
         continue;
       }
@@ -256,9 +256,10 @@ export default class Polygon {
         if (intersectionPoint === undefined) { // Parallel lines
           intersectionPoint = tracer.structureOther.edges[iOtherEdge].b; // TODO assumes both CCW structures
         }
+        if (intersectionPoint.equals(builder.lastVertex)) return prev;
         let distSqrd = Segment.distanceSqrd(intersectionPoint, builder.lastVertex);
         // TODO - verify we're not taking intersection points that are on the edge - or maybe we need those
-        if (!equals(distSqrd, 0) && distSqrd < prev.distSqrd) return {distSqrd, point: intersectionPoint, index: iOtherEdge};
+        if (distSqrd < prev.distSqrd) return {distSqrd, point: intersectionPoint, index: iOtherEdge};
         return prev;
       }, {distSqrd: Infinity});
 
@@ -292,7 +293,10 @@ export default class Polygon {
     if (!this.containsPoint(point)) return point;
 
     let closest = this.edges.reduce((smallest, edge, i) => {
-      let escapeSegment = new Segment(point, edge.closestPointOnSegmentTo(point));
+      if (smallest.distSqrd === 0) return smallest;
+      let closestOnSegment = edge.closestPointOnSegmentTo(point);
+      let escapeSegment = new Segment(point, closestOnSegment);
+      if (point.equals(closestOnSegment)) return {distSqrd: 0, escapeSegment, vIndex: i};
       let distSqrd = escapeSegment.distanceSqrd();
       return distSqrd < smallest.distSqrd ? {distSqrd, escapeSegment, vIndex: i} : smallest;
     }, {distSqrd: Infinity});
