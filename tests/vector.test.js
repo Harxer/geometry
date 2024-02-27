@@ -75,7 +75,25 @@ describe('x', function() {
     testVector.x = 0;
     expect(testVector.angle).toBe(0);
     expect(testVector.x).toBe(0);
+    expect(testVector._x).toBe(undefined);
     expect(testVector.y).toBe(0);
+    expect(testVector._y).toBe(undefined);
+    expect(testVector.magnitude).toBe(0);
+    testVector.magnitude = 5;
+    expect(testVector.x).toBe(5);
+    expect(testVector.y).toBe(0);
+  })
+
+
+  it('set handles zero vector', function() {
+    let testVector = new Vector(5, 0);
+    expect(testVector.magnitude).toBe(5);
+    testVector.x = 0;
+    expect(testVector.angle).toBe(0);
+    expect(testVector.x).toBe(0);
+    expect(testVector._x).toBe(undefined);
+    expect(testVector.y).toBe(0);
+    expect(testVector._y).toBe(undefined);
     expect(testVector.magnitude).toBe(0);
     testVector.magnitude = 5;
     expect(testVector.x).toBe(5);
@@ -111,11 +129,13 @@ describe('y', function() {
     testVector.y = 0;
     expect(testVector.angle).toBe(Math.PI / 2);
     expect(testVector.x).toBe(0);
+    expect(testVector._x).toBe(undefined);
     expect(testVector.y).toBe(0);
+    expect(testVector._y).toBe(undefined);
     expect(testVector.magnitude).toBe(0);
     testVector.magnitude = 5;
-    expect(equals(testVector.x, 0, 14)).toBe(true);
     expect(testVector.y).toBe(5);
+    expect(testVector.x).toBeCloseTo(0);
   })
   //todo throws
 })
@@ -218,12 +238,17 @@ describe('extendBy', function() {
 })
 
 describe('add', function() {
-  it('modifies original', function() {
-    let testVector = new Vector(5, 0);
-    expect(testVector.angle).toBeCloseTo(0);
-    expect(testVector.add(new Vector(1, 0)).x).toBe(6);
+  it('modifies x axis', function() {
+    let testVector = new Vector({magnitude: 0, angle: 0});
+    testVector.add(new Vector({magnitude: 6, angle: 0}))
     expect(testVector.x).toBe(6);
-    expect(testVector.angle).toBeCloseTo(0);
+    expect(testVector.y).toBeCloseTo(0);
+  })
+  it('modifies y axis', function() {
+    let testVector = new Vector({magnitude: 0, angle: 0});
+    testVector.add(new Vector({magnitude: 6, angle: Math.PI / 2}))
+    expect(testVector.y).toBe(6);
+    expect(testVector.x).toBeCloseTo(0);
   })
 })
 

@@ -51,9 +51,12 @@ export default class Vector {
 
   /** Structure's x component. @returns {integer} */
   get x() {
+    // Defer extract x component if structure only has a magnitude and angle
     if (this._x === undefined)  {
       if (this._magnitude === 0) {
-        // Zero vectors do not memoize components to zero
+        // Zero vectors do not memoize components to zero.
+        // If memo fields for _x and _y were seen as zero, the structure may be treated as
+        // a component-arranged zero vector which is not allowed (see Vector class description).
         return 0;
       } else {
         this._x = this.magnitude * Math.cos(this.angle)
@@ -70,6 +73,12 @@ export default class Vector {
       this._magnitude = 0;
       this._x = undefined;
       this._y = undefined;
+    } else if (this._magnitude === 0) {
+      // Handle zero vector component setting
+      this._y = 0;
+      this._x = val
+      this._magnitude = val;
+      this._angle = undefined;
     } else {
       // Force compute y before clearing magnitude/angle
       this.y;
@@ -84,7 +93,9 @@ export default class Vector {
     // Defer extract y component if structure only has a magnitude and angle
     if (this._y === undefined) {
       if (this._magnitude === 0) {
-        // zero vectors do not memoize components to zero
+        // Zero vectors do not memoize components to zero.
+        // If memo fields for _x and _y were seen as zero, the structure may be treated as
+        // a component-arranged zero vector which is not allowed (see Vector class description).
         return 0;
       } else {
         this._y = this.magnitude * Math.sin(this.angle)
@@ -101,6 +112,12 @@ export default class Vector {
       this._magnitude = 0;
       this._x = undefined;
       this._y = undefined;
+    } else if (this._magnitude === 0) {
+      // Handle zero vector component setting
+      this._x = 0
+      this._y = val;
+      this._magnitude = val;
+      this._angle = undefined;
     } else {
       // Force compute x before clearing magnitude/angle
       this.x;
@@ -364,7 +381,11 @@ export default class Vector {
   /** INTERNAL: Check for valid arrangement style */
   _arrangedAs(arrangement) {
     if (arrangement === COMPONENTS) {
-      return this._x !== undefined && this._y !== undefined;
+      return this._x !== undefined &&
+             this._y !== undefined &&
+             // This structure takes special care to avoid having both components set to zero.
+             // See Vector class description for more.
+             (this._x !== 0 || this._y !== 0);
     }
     if (arrangement === MAGNITUDE_ANGLE) {
       return this._angle !== undefined && this._magnitude !== undefined;
