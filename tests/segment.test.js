@@ -1,10 +1,10 @@
 /**
  * Test file for Segment.js
  */
-import Segment from "../structures/segment";
-import Point from "../structures/point";
-import Vector from "../structures/vector";
-import { setGlobalEqualsPrecision } from "../geometry";
+import Segment from "../lib/structures/segment";
+import Point from "../lib/structures/point";
+import Vector from "../lib/structures/vector";
+import { setGlobalEqualsPrecision } from "../lib/geometry";
 
 setGlobalEqualsPrecision(16);
 

@@ -1,10 +1,10 @@
 /**
  * Test file for Point.js
  */
-import Point from "../structures/point";
-import Segment from '../structures/segment';
-import Vector from '../structures/vector';
-import { minNumber, setGlobalEqualsPrecision } from "../geometry";
+import Point from "../lib/structures/point";
+import Segment from '../lib/structures/segment';
+import Vector from '../lib/structures/vector';
+import { minNumber, setGlobalEqualsPrecision } from "../lib/geometry";
 
 setGlobalEqualsPrecision(16);
 

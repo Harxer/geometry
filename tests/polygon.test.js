@@ -1,11 +1,11 @@
 /**
  * Test file for Polygon.js
  */
-import Polygon from "../structures/polygon";
-import Point from "../structures/point";
-import Vector from "../structures/vector";
-import Segment from "../structures/segment";
-import { equals, minNumber, magnitudeOrder, setGlobalEqualsPrecision, globalEqualsPrecision } from '../geometry';
+import Polygon from "../lib/structures/polygon";
+import Point from "../lib/structures/point";
+import Vector from "../lib/structures/vector";
+import Segment from "../lib/structures/segment";
+import { equals, minNumber, magnitudeOrder, setGlobalEqualsPrecision, globalEqualsPrecision } from '../lib/geometry';
 
 setGlobalEqualsPrecision(16);
 

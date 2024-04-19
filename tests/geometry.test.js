@@ -1,8 +1,8 @@
 /**
  * Test file for Geometry.js
  */
-import * as Geometry from '../geometry'
-import Point from '../structures/point'
+import * as Geometry from '../lib/geometry'
+import Point from '../lib/structures/point'
 
 Geometry.setGlobalEqualsPrecision(16);
 

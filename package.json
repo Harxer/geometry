@@ -1,8 +1,11 @@
 {
   "name": "@harxer/geometry",
-  "version": "1.2.24",
+  "version": "1.2.3",
   "description": "Harxer geometry calculation helper methods.",
-  "main": "geometry.js",
+  "main": "lib/geometry.js",
+  "files": [
+    "lib/"
+  ],
   "type": "module",
   "repository": "git@github.com:Harxer/geometry.git",
   "author": "Harrison Balogh",
@@ -14,6 +17,7 @@
   "devDependencies": {
     "eslint": "^8.55.0",
     "eslint-config-google": "^0.14.0",
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "typescript": "^5.4.5"
   }
 }

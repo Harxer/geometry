@@ -1,9 +1,9 @@
 /**
  * Test file for Vector.js
  */
-import Vector from '../structures/vector';
-import Point from '../structures/point';
-import { equals, setGlobalEqualsPrecision } from '../geometry';
+import Vector from '../lib/structures/vector';
+import Point from '../lib/structures/point';
+import { equals, setGlobalEqualsPrecision } from '../lib/geometry';
 
 setGlobalEqualsPrecision(16);
 
